@@ -1,0 +1,1922 @@
+ID:             1206
+Name/String:    Message
+Group:          IQ::Message
+Read-only:      True
+Enabled:        True
+Display Index:  2
+Type:           String
+Value:
+Default:
+
+ID:             1207
+Name/String:    Acknowledge
+Group:          IQ::Message
+Read-only:      False
+Enabled:        False
+Select-only:    True
+Display Index:  3
+Type:           Bool
+Value:          False
+Default:        False
+No of Values:   2
+Values:         0: True
+                1: False
+
+ID:             1000
+Name/String:    Exposure Program
+Group:          IQ::Capture Setup
+Read-only:      False
+Enabled:        True
+Select-only:    True
+Display Index:  4
+Type:           Enum
+Value:          [0] = Manual
+Default:        [0] = Manual
+No of Values:   4
+Values:         0: [0] = Manual
+                1: [1] = AperturePriority
+                2: [2] = ShutterPriority
+                3: [3] = Program
+
+ID:             120
+Name/String:    ISO
+Description:    The sensor ISO
+Group:          IQ::Capture Setup
+Read-only:      False
+Enabled:        True
+Select-only:    True
+Display Index:  5
+Type:           Float64
+Value:          4000
+Min:            50
+Max:            25600
+Default:        50
+No of Values:   28
+Values:         0: 50
+                1: 64
+                2: 80
+                3: 100
+                4: 125
+                5: 160
+                6: 200
+                7: 250
+                8: 320
+                9: 400
+                10: 500
+                11: 640
+                12: 800
+                13: 1000
+                14: 1250
+                15: 1600
+                16: 2000
+                17: 2500
+                18: 3200
+                19: 4000
+                20: 5000
+                21: 6400
+                22: 8000
+                23: 10000
+                24: 12800
+                25: 16000
+                26: 20000
+                27: 25600
+
+ID:             1003
+Name/String:    Aperture
+Group:          IQ::Capture Setup
+Read-only:      False
+Enabled:        True
+Select-only:    True
+Display Index:  6
+Type:           Float64
+Value:          22
+Unit:           f/
+Min:            2.79999995231628
+Max:            22
+Default:        2.79999995231628
+No of Values:   19
+Values:         0: 2.79999995231628
+                1: 3.20000004768372
+                2: 3.5
+                3: 4
+                4: 4.5
+                5: 5
+                6: 5.59999990463257
+                7: 6.30000019073486
+                8: 7.09999990463257
+                9: 8
+                10: 9
+                11: 10
+                12: 11
+                13: 12
+                14: 14
+                15: 16
+                16: 18
+                17: 20
+                18: 22
+
+ID:             1002
+Name/String:    Shutter Speed
+Group:          IQ::Capture Setup
+Read-only:      False
+Enabled:        True
+Select-only:    True
+Display Index:  7
+Type:           Float64
+Value:          0.0125000001862645
+Unit:           seconds
+Min:            0.000250000011874363
+Max:            60
+Default:        0.00999999977648258
+No of Values:   55
+Values:         0: 0.000250000011874363
+                1: 0.000312499993015081
+                2: 0.00039999998989515
+                3: 0.000500000023748726
+                4: 0.000624999986030161
+                5: 0.0007999999797903
+                6: 0.00100000004749745
+                7: 0.00124999997206032
+                8: 0.00156250002328306
+                9: 0.0020000000949949
+                10: 0.00249999994412065
+                11: 0.00312500004656613
+                12: 0.00400000018998981
+                13: 0.00499999988824129
+                14: 0.00625000009313226
+                15: 0.00800000037997961
+                16: 0.00999999977648258
+                17: 0.0125000001862645
+                18: 0.0166666693985462
+                19: 0.0199999995529652
+                20: 0.025000000372529
+                21: 0.0333333313465118
+                22: 0.0399999991059303
+                23: 0.0500001013278961
+                24: 0.0666666701436043
+                25: 0.0769230797886848
+                26: 0.100000098347664
+                27: 0.125
+                28: 0.16666667163372
+                29: 0.200000002980232
+                30: 0.25
+                31: 0.333333343267441
+                32: 0.400000005960464
+                33: 0.5
+                34: 0.600000023841858
+                35: 0.800000011920929
+                36: 1
+                37: 1.29999995231628
+                38: 1.60000002384186
+                39: 2
+                40: 2.5
+                41: 3.00000095367432
+                42: 4
+                43: 5
+                44: 6.00000095367432
+                45: 8
+                46: 10
+                47: 13
+                48: 15
+                49: 20
+                50: 25
+                51: 30
+                52: 40
+                53: 50
+                54: 60
+
+ID:             122
+Name/String:    White Balance
+Group:          IQ::Capture Setup
+Read-only:      False
+Enabled:        True
+Select-only:    True
+Display Index:  10
+Type:           Enum
+Value:          [0] = Auto
+Default:        [0] = Auto
+No of Values:   8
+Values:         0: [0] = Auto
+                1: [1] = Daylight
+                2: [2] = Fluorescent
+                3: [3] = Tungsten
+                4: [4] = Flash
+                5: [6] = Custom 1
+                6: [7] = Custom 2
+                7: [8] = Custom 3
+
+ID:             230
+Name/String:    Storage Mode
+Group:          IQ::Capture Setup
+Read-only:      False
+Enabled:        True
+Select-only:    True
+Display Index:  15
+Type:           Enum
+Value:          [0] = Auto
+Default:        [0] = Auto
+No of Values:   2
+Values:         0: [0] = Auto
+                1: [1] = Advanced
+
+ID:             1303
+Name/String:    XQD/CFX
+Group:          IQ::Capture Setup
+Read-only:      True
+Enabled:        True
+Select-only:    True
+Display Index:  16
+Type:           Enum
+Value:          [2] = If Present
+Default:        [2] = If Present
+No of Values:   2
+Values:         0: [0] = Disable
+                1: [2] = If Present
+
+ID:             1304
+Name/String:    SD
+Group:          IQ::Capture Setup
+Read-only:      True
+Enabled:        True
+Select-only:    True
+Display Index:  17
+Type:           Enum
+Value:          [0] = Disable
+Default:        [0] = Disable
+No of Values:   2
+Values:         0: [0] = Disable
+                1: [2] = If Present
+
+ID:             1305
+Name/String:    SD Storage
+Group:          IQ::Capture Setup
+Read-only:      False
+Enabled:        True
+Select-only:    True
+Display Index:  18
+Type:           Enum
+Value:          [0] = Off
+Default:        [0] = Off
+No of Values:   5
+Values:         0: [0] = Off
+                1: [1] = JPEG Only
+                2: [3] = Archive Mode
+                3: [4] = Primary Storage
+                4: [5] = Overflow
+
+ID:             1302
+Name/String:    Host Storage
+Group:          IQ::Capture Setup
+Read-only:      True
+Enabled:        True
+Select-only:    True
+Display Index:  19
+Type:           Enum
+Value:          [2] = If Present
+Default:        [2] = If Present
+No of Values:   2
+Values:         0: [0] = Disable
+                1: [2] = If Present
+
+ID:             104
+Name/String:    Image Orientation
+Group:          IQ::Capture Setup
+Read-only:      False
+Enabled:        True
+Select-only:    True
+Display Index:  20
+Type:           Enum
+Value:          [4294967294] = Auto
+Default:        [4294967294] = Auto
+No of Values:   5
+Values:         0: [4294967294] = Auto
+                1: [0] = 0°
+                2: [1] = 90°
+                3: [3] = 180°
+                4: [2] = 270°
+
+ID:             102
+Name/String:    File Format
+Group:          IQ::Capture Setup
+Read-only:      False
+Enabled:        True
+Select-only:    True
+Display Index:  21
+Type:           Enum
+Value:          [4] = IIQ14 Smart
+Default:        [4] = IIQ14 Smart
+No of Values:   5
+Values:         0: [1] = IIQ16 Extended
+                1: [2] = IIQ16 Large
+                2: [3] = IIQ14 Large
+                3: [4] = IIQ14 Smart
+                4: [5] = IIQ14 Sensor+
+
+ID:             103
+Name/String:    Compression
+Group:          IQ::Capture Setup
+Read-only:      False
+Enabled:        True
+Select-only:    True
+Display Index:  22
+Type:           Enum
+Value:          [6] = IIQ S
+Default:        [6] = IIQ S
+No of Values:   3
+Values:         0: [1] = IIQ L 16bit
+                1: [4] = IIQ L
+                2: [6] = IIQ S
+
+ID:             1008
+Name/String:    Shutter Mode
+Group:          IQ::Capture Setup
+Read-only:      False
+Enabled:        True
+Select-only:    True
+Display Index:  23
+Type:           Enum
+Value:          [1] = LS Priority
+Default:        [1] = LS Priority
+No of Values:   3
+Values:         0: [0] = FPS Only
+                1: [1] = LS Priority
+                2: [2] = ES Only
+
+ID:             1028
+Name/String:    Shutter Mode Actual
+Group:          IQ::Capture Setup
+Read-only:      True
+Enabled:        True
+Select-only:    True
+Display Index:  24
+Type:           Enum
+Value:          [1] = LS
+Default:        [1] = LS
+No of Values:   3
+Values:         0: [0] = FPS
+                1: [1] = LS
+                2: [2] = ES
+
+ID:             1010
+Name/String:    AF Mode
+Group:          IQ::Capture Setup
+Read-only:      False
+Enabled:        True
+Select-only:    True
+Display Index:  25
+Type:           Enum
+Value:          [0] = Average
+Default:        [0] = Average
+No of Values:   3
+Values:         0: [0] = Average
+                1: [1] = Spot
+                2: [2] = HyperFocal
+
+ID:             1011
+Name/String:    AF Drive
+Group:          IQ::Capture Setup
+Read-only:      False
+Enabled:        True
+Select-only:    True
+Display Index:  26
+Type:           Enum
+Value:          [0] = Single
+Default:        [0] = Single
+No of Values:   3
+Values:         0: [0] = Single
+                1: [1] = Continuous
+                2: [2] = Manual
+
+ID:             1009
+Name/String:    Drive
+Group:          IQ::Capture Setup
+Read-only:      False
+Enabled:        True
+Select-only:    True
+Display Index:  27
+Type:           Enum
+Value:          [0] = Single
+Default:        [0] = Single
+No of Values:   6
+Values:         0: [0] = Single
+                1: [1] = Continuous
+                2: [2] = Vibr. Delay
+                3: [3] = Bracketing
+                4: [4] = Delayed
+                5: [5] = Manual
+
+ID:             1020
+Name/String:    Mirror Up
+Group:          IQ::Capture Setup
+Read-only:      False
+Enabled:        True
+Select-only:    True
+Display Index:  28
+Type:           Bool
+Value:          True
+Default:        False
+No of Values:   2
+Values:         0: True
+                1: False
+
+ID:             1006
+Name/String:    Metering mode
+Group:          IQ::Capture Setup
+Read-only:      False
+Enabled:        True
+Select-only:    True
+Display Index:  29
+Type:           Enum
+Value:          [0] = Matrix
+Default:        [0] = Matrix
+No of Values:   3
+Values:         0: [0] = Matrix
+                1: [1] = Center
+                2: [2] = Spot
+
+ID:             1004
+Name/String:    Exposure Comp.
+Group:          IQ::Capture Setup
+Read-only:      False
+Enabled:        True
+Select-only:    True
+Display Index:  30
+Type:           Float64
+Value:          0
+Min:            -5
+Max:            5
+Default:        0
+No of Values:   31
+Values:         0: -5
+                1: -4.67000007629395
+                2: -4.32999992370605
+                3: -4
+                4: -3.67000007629395
+                5: -3.32999992370605
+                6: -3
+                7: -2.67000007629395
+                8: -2.32999992370605
+                9: -2
+                10: -1.66999995708466
+                11: -1.33000004291534
+                12: -1
+                13: -0.670000016689301
+                14: -0.330000013113022
+                15: 0
+                16: 0.330000013113022
+                17: 0.670000016689301
+                18: 1
+                19: 1.33000004291534
+                20: 1.66999995708466
+                21: 2
+                22: 2.32999992370605
+                23: 2.67000007629395
+                24: 3
+                25: 3.32999992370605
+                26: 3.67000007629395
+                27: 4
+                28: 4.32999992370605
+                29: 4.67000007629395
+                30: 5
+
+ID:             1021
+Name/String:    Exp Error
+Group:          IQ::Capture Setup
+Read-only:      True
+Enabled:        True
+Select-only:    True
+Display Index:  31
+Type:           Float64
+Value:          -10
+Min:            -10
+Max:            10
+Default:        0
+No of Values:   61
+Values:         0: -10
+                1: -9.67000007629395
+                2: -9.32999992370605
+                3: -9
+                4: -8.67000007629395
+                5: -8.32999992370605
+                6: -8
+                7: -7.67000007629395
+                8: -7.32999992370605
+                9: -7
+                10: -6.67000007629395
+                11: -6.32999992370605
+                12: -6
+                13: -5.67000007629395
+                14: -5.32999992370605
+                15: -5
+                16: -4.67000007629395
+                17: -4.32999992370605
+                18: -4
+                19: -3.67000007629395
+                20: -3.32999992370605
+                21: -3
+                22: -2.67000007629395
+                23: -2.32999992370605
+                24: -2
+                25: -1.66999995708466
+                26: -1.33000004291534
+                27: -1
+                28: -0.670000016689301
+                29: -0.330000013113022
+                30: 0
+                31: 0.330000013113022
+                32: 0.670000016689301
+                33: 1
+                34: 1.33000004291534
+                35: 1.66999995708466
+                36: 2
+                37: 2.32999992370605
+                38: 2.67000007629395
+                39: 3
+                40: 3.32999992370605
+                41: 3.67000007629395
+                42: 4
+                43: 4.32999992370605
+                44: 4.67000007629395
+                45: 5
+                46: 5.32999992370605
+                47: 5.67000007629395
+                48: 6
+                49: 6.32999992370605
+                50: 6.67000007629395
+                51: 7
+                52: 7.32999992370605
+                53: 7.67000007629395
+                54: 8
+                55: 8.32999992370605
+                56: 8.67000007629395
+                57: 9
+                58: 9.32999992370605
+                59: 9.67000007629395
+                60: 10
+
+ID:             1013
+Name/String:    Auto Exposure Out Of Range
+Group:          IQ::Capture Setup
+Read-only:      True
+Enabled:        True
+Select-only:    True
+Display Index:  32
+Type:           Bool
+Value:          False
+Default:        False
+No of Values:   2
+Values:         0: True
+                1: False
+
+ID:             1151
+Name/String:    Model
+Group:          About::Lens
+Read-only:      True
+Enabled:        True
+Display Index:  33
+Type:           String
+Value:
+Default:
+
+ID:             1161
+Name/String:    Serial
+Group:          About::Lens
+Read-only:      True
+Enabled:        True
+Display Index:  34
+Type:           String
+Value:
+Default:
+
+ID:             1152
+Name/String:    Firmware
+Group:          About::Lens
+Read-only:      True
+Enabled:        True
+Display Index:  35
+Type:           String
+Value:
+Default:
+
+ID:             1025
+Name/String:    Leaf Shutter Count
+Group:          About::Lens
+Read-only:      True
+Enabled:        False
+Display Index:  36
+Type:           UInt32
+Value:          2164470976
+Min:            0
+Max:            4294967295
+Default:        0
+
+ID:             1026
+Name/String:    Aperture Count
+Group:          About::Lens
+Read-only:      True
+Enabled:        False
+Display Index:  37
+Type:           UInt32
+Value:          2164470976
+Min:            0
+Max:            4294967295
+Default:        0
+
+ID:             1243
+Name/String:    XQD/CFX Availability
+Group:          About::Storage Cards
+Read-only:      True
+Enabled:        True
+Select-only:    True
+Display Index:  41
+Type:           Bool
+Value:          True
+Default:        False
+No of Values:   2
+Values:         0: True
+                1: False
+
+ID:             1460
+Name/String:    XQD/CFX remaining free space
+Group:          About::Storage Cards
+Read-only:      True
+Enabled:        True
+Display Index:  42
+Type:           UInt64
+Value:          57985007616
+Min:            0
+Max:            18446744073709551615
+Default:        0
+
+ID:             1461
+Name/String:    XQD/CFX size
+Group:          About::Storage Cards
+Read-only:      True
+Enabled:        True
+Display Index:  43
+Type:           UInt64
+Value:          60222799872
+Min:            0
+Max:            18446744073709551615
+Default:        0
+
+ID:             1462
+Name/String:    SD Card Availability
+Group:          About::Storage Cards
+Read-only:      True
+Enabled:        True
+Select-only:    True
+Display Index:  44
+Type:           Bool
+Value:          False
+Default:        False
+No of Values:   2
+Values:         0: True
+                1: False
+
+ID:             1463
+Name/String:    SD Card Remaining Free Space
+Group:          About::Storage Cards
+Read-only:      True
+Enabled:        True
+Display Index:  45
+Type:           UInt64
+Value:          0
+Min:            0
+Max:            18446744073709551615
+Default:        0
+
+ID:             1464
+Name/String:    SD Card Size
+Group:          About::Storage Cards
+Read-only:      True
+Enabled:        True
+Display Index:  46
+Type:           UInt64
+Value:          0
+Min:            0
+Max:            18446744073709551615
+Default:        0
+
+ID:             1420
+Name/String:    Current Temperature
+Group:          About::CFexpress Card
+Read-only:      True
+Enabled:        False
+Display Index:  47
+Type:           Int32
+Value:          -273
+Min:            -273
+Max:            100
+Default:        -273
+
+ID:             1425
+Name/String:    Throttle Temperature T1
+Group:          About::CFexpress Card
+Read-only:      True
+Enabled:        False
+Display Index:  48
+Type:           Int32
+Value:          -273
+Min:            -273
+Max:            100
+Default:        -273
+
+ID:             1426
+Name/String:    Throttle Temperature T2
+Group:          About::CFexpress Card
+Read-only:      True
+Enabled:        False
+Display Index:  49
+Type:           Int32
+Value:          -273
+Min:            -273
+Max:            100
+Default:        -273
+
+ID:             1421
+Name/String:    Under Temperature
+Group:          About::CFexpress Card
+Read-only:      True
+Enabled:        True
+Display Index:  50
+Type:           Int32
+Value:          -273
+Min:            -273
+Max:            100
+Default:        -273
+
+ID:             1422
+Name/String:    Over Temperature
+Group:          About::CFexpress Card
+Read-only:      True
+Enabled:        False
+Display Index:  51
+Type:           Int32
+Value:          -273
+Min:            -273
+Max:            100
+Default:        -273
+
+ID:             1423
+Name/String:    Warning Temperature
+Group:          About::CFexpress Card
+Read-only:      True
+Enabled:        False
+Display Index:  52
+Type:           Int32
+Value:          -273
+Min:            -273
+Max:            100
+Default:        -273
+
+ID:             1424
+Name/String:    Critical Temperature
+Group:          About::CFexpress Card
+Read-only:      True
+Enabled:        False
+Display Index:  53
+Type:           Int32
+Value:          -273
+Min:            -273
+Max:            100
+Default:        -273
+
+ID:             1022
+Name/String:    Focus Adjust (Discrete)
+Group:          IQ::Focus Control
+Read-only:      False
+Enabled:        False
+Select-only:    True
+Display Index:  54
+Type:           Enum
+Value:          [0] = None
+Default:        [0] = None
+No of Values:   9
+Values:         0: [4294967292] = Near End
+                1: [4294967293] = Near Coarse
+                2: [4294967294] = Near Medium
+                3: [4294967295] = Near Fine
+                4: [0] = None
+                5: [1] = Far Fine
+                6: [2] = Far Medium
+                7: [3] = Far Coarse
+                8: [4] = Far End
+
+ID:             1023
+Name/String:    Focus Adjust (Continuous)
+Group:          IQ::Focus Control
+Read-only:      False
+Enabled:        False
+Display Index:  55
+Type:           Int32
+Value:          0
+Min:            -5000
+Max:            5000
+Default:        0
+
+ID:             1030
+Name/String:    Focus Marker
+Group:          IQ::Focus Control
+Read-only:      True
+Enabled:        False
+Select-only:    True
+Display Index:  56
+Type:           Enum
+Value:          [0] = None
+Default:        [0] = None
+No of Values:   7
+Values:         0: [0] = None
+                1: [1] = In Focus
+                2: [2] = Front Focus
+                3: [3] = Behind Focus
+                4: [4] = Too Near
+                5: [5] = Too Far
+                6: [6] = Not Possible
+
+ID:             1029
+Name/String:    RemoteFocus
+Group:          IQ::Focus Control
+Read-only:      False
+Enabled:        False
+Select-only:    True
+Display Index:  57
+Type:           Bool
+Value:          False
+Default:        False
+No of Values:   2
+Values:         0: True
+                1: False
+
+ID:             128
+Name/String:    Black Ref.
+Group:          IQ::Capture Setup
+Read-only:      False
+Enabled:        True
+Select-only:    True
+Display Index:  113
+Type:           Enum
+Value:          [1] = Create
+Default:        [1] = Create
+No of Values:   2
+Values:         0: [1] = Create
+                1: [2] = Prerecorded
+
+ID:             141
+Name/String:    Antiflickering
+Group:          IQ::Capture Setup
+Read-only:      False
+Enabled:        True
+Select-only:    True
+Display Index:  115
+Type:           Enum
+Value:          [0] = Off
+Default:        [0] = Off
+No of Values:   3
+Values:         0: [0] = Off
+                1: [1] = 50Hz
+                2: [2] = 60Hz
+
+ID:             1201
+Name/String:    Ready For Capture
+Group:          IQ::Capture Status
+Read-only:      True
+Enabled:        True
+Select-only:    True
+Display Index:  118
+Type:           Bool
+Value:          True
+Default:        False
+No of Values:   2
+Values:         0: True
+                1: False
+
+ID:             1200
+Name/String:    Unsaved Images
+Group:          IQ::Capture Status
+Read-only:      True
+Enabled:        True
+Display Index:  120
+Type:           UInt32
+Value:          0
+Min:            0
+Max:            4294967295
+Default:        0
+
+ID:             1205
+Name/String:    LiveView Active
+Group:          IQ::Capture Status
+Read-only:      True
+Enabled:        True
+Select-only:    True
+Display Index:  121
+Type:           Bool
+Value:          False
+Default:        False
+No of Values:   2
+Values:         0: True
+                1: False
+
+ID:             1057
+Name/String:    ISO Auto
+Group:          IQ::Auto Exposure
+Read-only:      False
+Enabled:        True
+Select-only:    True
+Display Index:  122
+Type:           Bool
+Value:          False
+Default:        False
+No of Values:   2
+Values:         0: True
+                1: False
+
+ID:             1051
+Name/String:    ISO Min
+Group:          IQ::Auto Exposure
+Read-only:      False
+Enabled:        True
+Select-only:    True
+Display Index:  123
+Type:           Float64
+Value:          50
+Min:            50
+Max:            12800
+Default:        50
+No of Values:   25
+Values:         0: 50
+                1: 64
+                2: 80
+                3: 100
+                4: 125
+                5: 160
+                6: 200
+                7: 250
+                8: 320
+                9: 400
+                10: 500
+                11: 640
+                12: 800
+                13: 1000
+                14: 1250
+                15: 1600
+                16: 2000
+                17: 2500
+                18: 3200
+                19: 4000
+                20: 5000
+                21: 6400
+                22: 8000
+                23: 10000
+                24: 12800
+
+ID:             1052
+Name/String:    ISO Max
+Group:          IQ::Auto Exposure
+Read-only:      False
+Enabled:        True
+Select-only:    True
+Display Index:  124
+Type:           Float64
+Value:          12800
+Min:            35
+Max:            12800
+Default:        25600
+No of Values:   27
+Values:         0: 35
+                1: 40
+                2: 50
+                3: 64
+                4: 80
+                5: 100
+                6: 125
+                7: 160
+                8: 200
+                9: 250
+                10: 320
+                11: 400
+                12: 500
+                13: 640
+                14: 800
+                15: 1000
+                16: 1250
+                17: 1600
+                18: 2000
+                19: 2500
+                20: 3200
+                21: 4000
+                22: 5000
+                23: 6400
+                24: 8000
+                25: 10000
+                26: 12800
+
+ID:             1058
+Name/String:    Shutter Speed Auto
+Group:          IQ::Auto Exposure
+Read-only:      False
+Enabled:        True
+Select-only:    True
+Display Index:  125
+Type:           Bool
+Value:          False
+Default:        False
+No of Values:   2
+Values:         0: True
+                1: False
+
+ID:             1053
+Name/String:    Shutter Speed Max
+Group:          IQ::Auto Exposure
+Read-only:      False
+Enabled:        True
+Select-only:    True
+Display Index:  126
+Type:           Float64
+Value:          3600
+Min:            0.000250000011874363
+Max:            3600
+Default:        3600
+No of Values:   73
+Values:         0: 0.000250000011874363
+                1: 0.000312499993015081
+                2: 0.00039999998989515
+                3: 0.000500000023748726
+                4: 0.000624999986030161
+                5: 0.0007999999797903
+                6: 0.00100000004749745
+                7: 0.00124999997206032
+                8: 0.00156250002328306
+                9: 0.0020000000949949
+                10: 0.00249999994412065
+                11: 0.00312500004656613
+                12: 0.00400000018998981
+                13: 0.00499999988824129
+                14: 0.00625000009313226
+                15: 0.00800000037997961
+                16: 0.00999999977648258
+                17: 0.0125000001862645
+                18: 0.0166666693985462
+                19: 0.0199999995529652
+                20: 0.025000000372529
+                21: 0.0333333313465118
+                22: 0.0399999991059303
+                23: 0.0500001013278961
+                24: 0.0666666701436043
+                25: 0.0769230797886848
+                26: 0.100000098347664
+                27: 0.125
+                28: 0.16666667163372
+                29: 0.200000002980232
+                30: 0.25
+                31: 0.333333343267441
+                32: 0.400000005960464
+                33: 0.5
+                34: 0.600000023841858
+                35: 0.800000011920929
+                36: 1
+                37: 1.29999995231628
+                38: 1.60000002384186
+                39: 2
+                40: 2.5
+                41: 3.00000095367432
+                42: 4
+                43: 5
+                44: 6.00000095367432
+                45: 8
+                46: 10
+                47: 13
+                48: 15
+                49: 20
+                50: 25
+                51: 30
+                52: 40
+                53: 50
+                54: 60
+                55: 80
+                56: 100
+                57: 120
+                58: 150
+                59: 210
+                60: 240
+                61: 300
+                62: 420
+                63: 480
+                64: 600
+                65: 750
+                66: 900
+                67: 1200
+                68: 1500
+                69: 1800
+                70: 2400
+                71: 3000
+                72: 3600
+
+ID:             1054
+Name/String:    Shutter Speed Min
+Group:          IQ::Auto Exposure
+Read-only:      False
+Enabled:        True
+Select-only:    True
+Display Index:  127
+Type:           Float64
+Value:          0.000250000011874363
+Min:            0.000250000011874363
+Max:            3600
+Default:        0.000250000011874363
+No of Values:   73
+Values:         0: 0.000250000011874363
+                1: 0.000312499993015081
+                2: 0.00039999998989515
+                3: 0.000500000023748726
+                4: 0.000624999986030161
+                5: 0.0007999999797903
+                6: 0.00100000004749745
+                7: 0.00124999997206032
+                8: 0.00156250002328306
+                9: 0.0020000000949949
+                10: 0.00249999994412065
+                11: 0.00312500004656613
+                12: 0.00400000018998981
+                13: 0.00499999988824129
+                14: 0.00625000009313226
+                15: 0.00800000037997961
+                16: 0.00999999977648258
+                17: 0.0125000001862645
+                18: 0.0166666693985462
+                19: 0.0199999995529652
+                20: 0.025000000372529
+                21: 0.0333333313465118
+                22: 0.0399999991059303
+                23: 0.0500001013278961
+                24: 0.0666666701436043
+                25: 0.0769230797886848
+                26: 0.100000098347664
+                27: 0.125
+                28: 0.16666667163372
+                29: 0.200000002980232
+                30: 0.25
+                31: 0.333333343267441
+                32: 0.400000005960464
+                33: 0.5
+                34: 0.600000023841858
+                35: 0.800000011920929
+                36: 1
+                37: 1.29999995231628
+                38: 1.60000002384186
+                39: 2
+                40: 2.5
+                41: 3.00000095367432
+                42: 4
+                43: 5
+                44: 6.00000095367432
+                45: 8
+                46: 10
+                47: 13
+                48: 15
+                49: 20
+                50: 25
+                51: 30
+                52: 40
+                53: 50
+                54: 60
+                55: 80
+                56: 100
+                57: 120
+                58: 150
+                59: 210
+                60: 240
+                61: 300
+                62: 420
+                63: 480
+                64: 600
+                65: 750
+                66: 900
+                67: 1200
+                68: 1500
+                69: 1800
+                70: 2400
+                71: 3000
+                72: 3600
+
+ID:             1059
+Name/String:    Aperture Auto
+Group:          IQ::Auto Exposure
+Read-only:      False
+Enabled:        True
+Select-only:    True
+Display Index:  128
+Type:           Bool
+Value:          False
+Default:        False
+No of Values:   2
+Values:         0: True
+                1: False
+
+ID:             1055
+Name/String:    Aperture Min
+Group:          IQ::Auto Exposure
+Read-only:      False
+Enabled:        True
+Select-only:    True
+Display Index:  129
+Type:           Float64
+Value:          2.79999995231628
+Min:            2.79999995231628
+Max:            45
+Default:        1.39999997615814
+No of Values:   25
+Values:         0: 2.79999995231628
+                1: 3.20000004768372
+                2: 3.5
+                3: 4
+                4: 4.5
+                5: 5
+                6: 5.59999990463257
+                7: 6.30000019073486
+                8: 7.09999990463257
+                9: 8
+                10: 9
+                11: 10
+                12: 11
+                13: 12
+                14: 14
+                15: 16
+                16: 18
+                17: 20
+                18: 22
+                19: 25
+                20: 29
+                21: 32
+                22: 36
+                23: 40
+                24: 45
+
+ID:             1056
+Name/String:    Aperture Max
+Group:          IQ::Auto Exposure
+Read-only:      False
+Enabled:        True
+Select-only:    True
+Display Index:  130
+Type:           Float64
+Value:          45
+Min:            2.79999995231628
+Max:            45
+Default:        45
+No of Values:   25
+Values:         0: 2.79999995231628
+                1: 3.20000004768372
+                2: 3.5
+                3: 4
+                4: 4.5
+                5: 5
+                6: 5.59999990463257
+                7: 6.30000019073486
+                8: 7.09999990463257
+                9: 8
+                10: 9
+                11: 10
+                12: 11
+                13: 12
+                14: 14
+                15: 16
+                16: 18
+                17: 20
+                18: 22
+                19: 25
+                20: 29
+                21: 32
+                22: 36
+                23: 40
+                24: 45
+
+ID:             1230
+Name/String:    LiveView AutoGain
+Group:          IQ::Auto Exposure
+Read-only:      False
+Enabled:        True
+Select-only:    True
+Display Index:  131
+Type:           Enum
+Value:          [1] = Simulated Exposure
+Default:        [1] = Simulated Exposure
+No of Values:   2
+Values:         0: [1] = Simulated Exposure
+                1: [2] = ViewFinder Mode
+
+ID:             1470
+Name/String:    Power Share With Camera
+Group:          IQ::Power Management
+Read-only:      False
+Enabled:        True
+Select-only:    True
+Display Index:  133
+Type:           Bool
+Value:          True
+Default:        True
+No of Values:   2
+Values:         0: True
+                1: False
+
+ID:             1220
+Name/String:    HDMI LiveView
+Group:          IQ::HDMI
+Read-only:      False
+Enabled:        True
+Select-only:    True
+Display Index:  134
+Type:           Bool
+Value:          False
+Default:        False
+No of Values:   2
+Values:         0: True
+                1: False
+
+ID:             1221
+Name/String:    HDMI Overlay
+Group:          IQ::HDMI
+Read-only:      False
+Enabled:        True
+Select-only:    True
+Display Index:  135
+Type:           Bool
+Value:          False
+Default:        False
+No of Values:   2
+Values:         0: True
+                1: False
+
+ID:             1244
+Name/String:    Overlay Layout
+Group:          IQ::HDMI
+Read-only:      False
+Enabled:        True
+Select-only:    True
+Display Index:  136
+Type:           Enum
+Value:          [0] = Standard
+Default:        [0] = Standard
+No of Values:   2
+Values:         0: [0] = Standard
+                1: [3] = UI
+
+ID:             1245
+Name/String:    Transparency
+Group:          IQ::HDMI
+Read-only:      False
+Enabled:        False
+Display Index:  137
+Type:           UInt32
+Value:          170
+Min:            0
+Max:            255
+Default:        170
+
+ID:             1246
+Name/String:    Preview Time
+Group:          IQ::HDMI
+Read-only:      False
+Enabled:        False
+Select-only:    True
+Display Index:  138
+Type:           Enum
+Value:          [3] = 6s
+Default:        [3] = 6s
+No of Values:   7
+Values:         0: [0] = No timeout
+                1: [1] = 2s
+                2: [2] = 4s
+                3: [3] = 6s
+                4: [4] = 10s
+                5: [5] = 15s
+                6: [6] = 30s
+
+ID:             1247
+Name/String:    Preview Orientation
+Group:          IQ::HDMI
+Read-only:      False
+Enabled:        False
+Select-only:    True
+Display Index:  139
+Type:           Enum
+Value:          [1] = 0°
+Default:        [1] = 0°
+No of Values:   4
+Values:         0: [1] = 0°
+                1: [2] = 90°
+                2: [3] = 180°
+                3: [4] = 270°
+
+ID:             1241
+Name/String:    Preview
+Group:          IQ::HDMI
+Read-only:      False
+Enabled:        False
+Select-only:    True
+Display Index:  140
+Type:           Enum
+Value:          [0] = Disable
+Default:        [0] = Disable
+No of Values:   3
+Values:         0: [0] = Disable
+                1: [1] = Small
+                2: [2] = Large
+
+ID:             1248
+Name/String:    HDMI LiveView Zoom
+Group:          IQ::HDMI
+Read-only:      False
+Enabled:        True
+Select-only:    True
+Display Index:  141
+Type:           Enum
+Value:          [0] = Overview
+Default:        [0] = Overview
+No of Values:   2
+Values:         0: [0] = Overview
+                1: [1] = 100%
+
+ID:             1310
+Name/String:    Zoom Pan X
+Group:          IQ::HDMI
+Read-only:      False
+Enabled:        True
+Display Index:  142
+Type:           UInt32
+Value:          50
+Min:            0
+Max:            100
+Default:        50
+
+ID:             1311
+Name/String:    Zoom Pan Y
+Group:          IQ::HDMI
+Read-only:      False
+Enabled:        True
+Display Index:  143
+Type:           UInt32
+Value:          50
+Min:            0
+Max:            100
+Default:        50
+
+ID:             1312
+Name/String:    Focus Peaking
+Group:          IQ::HDMI
+Read-only:      False
+Enabled:        True
+Select-only:    True
+Display Index:  144
+Type:           Bool
+Value:          False
+Default:        False
+No of Values:   2
+Values:         0: True
+                1: False
+
+ID:             1313
+Name/String:    Focus Peaking Threshold
+Group:          IQ::HDMI
+Read-only:      False
+Enabled:        True
+Display Index:  145
+Type:           UInt32
+Value:          500
+Min:            200
+Max:            900
+Default:        500
+
+ID:             1251
+Name/String:    Static Setup
+Group:          IQ::Network
+Read-only:      True
+Enabled:        True
+Select-only:    True
+Display Index:  147
+Type:           Bool
+Value:          False
+Default:        False
+No of Values:   2
+Values:         0: True
+                1: False
+
+ID:             1252
+Name/String:    IP Address
+Group:          IQ::Network
+Read-only:      True
+Enabled:        True
+Display Index:  148
+Type:           String
+Value:
+Default:
+
+ID:             1253
+Name/String:    Netmask
+Group:          IQ::Network
+Read-only:      True
+Enabled:        True
+Display Index:  149
+Type:           String
+Value:
+Default:
+
+ID:             1254
+Name/String:    Gateway
+Group:          IQ::Network
+Read-only:      True
+Enabled:        True
+Display Index:  150
+Type:           String
+Value:
+Default:
+
+ID:             1258
+Name/String:    DHCP Mode
+Group:          IQ::Network
+Read-only:      False
+Enabled:        True
+Select-only:    True
+Display Index:  151
+Type:           Enum
+Value:          [1] = Client
+Default:        [1] = Client
+No of Values:   2
+Values:         0: [0] = Off
+                1: [1] = Client
+
+ID:             1256
+Name/String:    DHCP Address
+Group:          IQ::Network
+Read-only:      True
+Enabled:        True
+Display Index:  152
+Type:           String
+Value:          169.254.6.188
+Default:
+
+ID:             1257
+Name/String:    Status/Action
+Group:          IQ::Network
+Read-only:      False
+Enabled:        True
+Select-only:    True
+Display Index:  153
+Type:           Enum
+Value:          [3] = Applied
+Default:        [1] = Unknown
+No of Values:   1
+Values:         0: [3] = Applied
+
+ID:             1260
+Name/String:    Bonjour Is Running
+Group:          IQ::Network
+Read-only:      True
+Enabled:        True
+Select-only:    True
+Display Index:  154
+Type:           Bool
+Value:          False
+Default:        False
+No of Values:   2
+Values:         0: True
+                1: False
+
+ID:             1261
+Name/String:    Bonjour Enable
+Group:          IQ::Network
+Read-only:      False
+Enabled:        True
+Select-only:    True
+Display Index:  155
+Type:           Bool
+Value:          False
+Default:        False
+No of Values:   2
+Values:         0: True
+                1: False
+
+ID:             1262
+Name/String:    Bonjour Enabled At Power On
+Group:          IQ::Network
+Read-only:      False
+Enabled:        True
+Select-only:    True
+Display Index:  156
+Type:           Bool
+Value:          False
+Default:        True
+No of Values:   2
+Values:         0: True
+                1: False
+
+ID:             1263
+Name/String:    Host Name
+Group:          IQ::Network
+Read-only:      False
+Enabled:        True
+Display Index:  157
+Type:           String
+Value:
+Default:
+
+ID:             1290
+Name/String:    Custom WB
+Group:          IQ::Restore To Default
+Read-only:      False
+Enabled:        True
+Select-only:    True
+Display Index:  158
+Type:           Bool
+Value:          False
+Default:        False
+No of Values:   2
+Values:         0: True
+                1: False
+
+ID:             1293
+Name/String:    Network Setup
+Group:          IQ::Restore To Default
+Read-only:      False
+Enabled:        True
+Select-only:    True
+Display Index:  159
+Type:           Bool
+Value:          False
+Default:        False
+No of Values:   2
+Values:         0: True
+                1: False
+
+ID:             1291
+Name/String:    Action: Restore
+Group:          IQ::Restore To Default
+Read-only:      False
+Enabled:        True
+Select-only:    True
+Display Index:  160
+Type:           Bool
+Value:          False
+Default:        False
+No of Values:   2
+Values:         0: True
+                1: False
+
+ID:             500
+Name/String:    Service Command
+Group:          {110}Service
+Read-only:      False
+Enabled:        True
+Display Index:  161
+Type:           String
+Value:
+Default:
+
+ID:             14
+Name/String:    Unit Name
+Group:          About::System
+Read-only:      True
+Enabled:        False
+Display Index:  162
+Type:           String
+Value:
+Default:
+
+ID:             13
+Name/String:    Unit Number
+Group:          About::System
+Read-only:      True
+Enabled:        False
+Display Index:  163
+Type:           UInt32
+Value:          0
+Min:            0
+Max:            32
+Default:        0
+
+ID:             12
+Name/String:    System Serial Number
+Group:          About::System
+Read-only:      True
+Enabled:        False
+Display Index:  164
+Type:           String
+Value:
+Default:
+
+ID:             2
+Name/String:    Model
+Group:          About::Back
+Read-only:      True
+Enabled:        True
+Display Index:  165
+Type:           String
+Value:          IQ4 150MP
+Default:
+
+ID:             1
+Name/String:    Manufacturer
+Group:          About::Back
+Read-only:      True
+Enabled:        True
+Display Index:  166
+Type:           String
+Value:          Phase One
+Default:
+
+ID:             18
+Name/String:    Profile
+Group:          About::Back
+Read-only:      True
+Enabled:        True
+Display Index:  167
+Type:           String
+Value:          Standard
+Default:
+
+ID:             3
+Name/String:    Serial
+Group:          About::Back
+Read-only:      True
+Enabled:        True
+Display Index:  168
+Type:           String
+Value:          JD031269
+Default:
+
+ID:             4
+Name/String:    Firmware
+Group:          About::Back
+Read-only:      True
+Enabled:        True
+Display Index:  169
+Type:           String
+Value:          6.04.2
+Default:
+
+ID:             10
+Name/String:    Model Id
+Group:          About::Back
+Read-only:      True
+Enabled:        True
+Display Index:  170
+Type:           UInt32
+Value:          293
+Min:            0
+Max:            4294967295
+Default:        4294967295
+
+ID:             200
+Name/String:    Capture Count
+Group:          About::Back
+Read-only:      True
+Enabled:        True
+Display Index:  173
+Type:           UInt32
+Value:          50
+Min:            0
+Max:            4294967295
+Default:        0
+
+ID:             24
+Name/String:    Sensor Area
+Group:          About::Back
+Read-only:      True
+Enabled:        True
+Display Index:  176
+Type:           Area
+Value:          [h=10760 w=14308]
+Default:        [h=10760 w=14308]
+
+ID:             25
+Name/String:    Sensor Active Rect.
+Group:          About::Back
+Read-only:      True
+Enabled:        True
+Display Index:  177
+Type:           Rect
+Value:          [x=102 y=106 h=10652 w=14204]
+Default:        [x=102 y=106 h=10652 w=14204]
+
+ID:             1471
+Name/String:    Primary Power Source
+Group:          About::Power
+Read-only:      True
+Enabled:        True
+Select-only:    True
+Display Index:  185
+Type:           Enum
+Value:          [5] = DB DC Power
+Default:        [0] = Local Only
+No of Values:   6
+Values:         0: [0] = Local Only
+                1: [1] = XF DC Power
+                2: [2] = XF Battery
+                3: [3] = DB Battery
+                4: [4] = Self Powered
+                5: [5] = DB DC Power
+
+ID:             204
+Name/String:    Back Battery State
+Group:          About::Power
+Read-only:      True
+Enabled:        True
+Select-only:    True
+Display Index:  186
+Type:           Enum
+Value:          [0] = Present
+Default:        [0] = Present
+No of Values:   7
+Values:         0: [0] = Present
+                1: [1] = Low
+                2: [2] = Depleted
+                3: [3] = Charging
+                4: [4] = Not Present
+                5: [5] = Error
+                6: [6] = Error
+
+ID:             206
+Name/String:    Camera Battery State
+Group:          About::Power
+Read-only:      True
+Enabled:        True
+Select-only:    True
+Display Index:  187
+Type:           Enum
+Value:          [3] = Charging
+Default:        [0] = Present
+No of Values:   7
+Values:         0: [0] = Present
+                1: [1] = Low
+                2: [2] = Depleted
+                3: [3] = Charging
+                4: [4] = Not Present
+                5: [5] = Error
+                6: [6] = Error
+
+ID:             208
+Name/String:    System Battery State
+Group:          About::Power
+Read-only:      True
+Enabled:        True
+Select-only:    True
+Display Index:  188
+Type:           Enum
+Value:          [3] = Charging
+Default:        [0] = Present
+No of Values:   7
+Values:         0: [0] = Present
+                1: [1] = Low
+                2: [2] = Depleted
+                3: [3] = Charging
+                4: [4] = Not Present
+                5: [5] = Error
+                6: [6] = Error
+
+ID:             201
+Name/String:    Back Battery Capacity
+Group:          About::Power
+Read-only:      True
+Enabled:        True
+Display Index:  189
+Type:           UInt32
+Value:          100
+Min:            0
+Max:            100
+Default:        0
+
+ID:             205
+Name/String:    Camera Battery Capacity
+Group:          About::Power
+Read-only:      True
+Enabled:        True
+Display Index:  190
+Type:           UInt32
+Value:          100
+Min:            0
+Max:            100
+Default:        0
+
+ID:             207
+Name/String:    System Battery Capacity
+Group:          About::Power
+Read-only:      True
+Enabled:        True
+Display Index:  191
+Type:           UInt32
+Value:          100
+Min:            0
+Max:            100
+Default:        0
+
+ID:             1401
+Name/String:    Diagnostics To Storage Config
+Group:          IQ::Diagnostics
+Read-only:      False
+Enabled:        True
+Display Index:  192
+Type:           UInt32
+Value:          0
+Min:            0
+Max:            4294967295
+Default:        0

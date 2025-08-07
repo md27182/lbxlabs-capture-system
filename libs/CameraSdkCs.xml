@@ -1,0 +1,1071 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>CameraSdkCs</name>
+    </assembly>
+    <members>
+        <member name="T:P1.CameraSdk.Camera">
+            <summary>
+            Representation of a physical Phase One Camera
+            </summary>
+            <remarks>
+            All interaction with camera are through objects of this class. You work with cameras using
+            two different schemes.
+            <h4>Properties</h4>
+            <para>All Phase One camera expose a dynamic set of properties. These include <em>Aperture</em>, <em>Shutter Time</em>,
+            <em>ISO</em> etc. But properties can also represent other camera settings like <em>shutter mode</em> or the
+            dimension of the LiveView images.</para>
+            <para>Common for all properties is that they define metadata like names and valid ranges.</para>
+            <para>A camera exposes different properties at different times. This means that setting one property,
+            might cause other properties to disappear or become visisble. Because of this dynamic nature, we do not
+            include an <c>enum</c> type with all <em>property ids</em>. You must query for the name and purpose
+            of the properties to wish to use. And know that their existence is not guaranteed.</para>
+            <h4>Capturing &amp; LiveView</h4>
+            <para>This class defines a set of methods to trigger image capturing on the camera, and streaming LiveView
+            images to SDK host computer. Also, you can control whether captured images should be transferred to the computer.</para>
+            <para>Both captured and LiveView images are transferred in <em>data chunks</em>. The captured full resolution RAW images are large,
+             and transferring them in chunks saves memory. You can control the size of each chunk, so you could allocate a giang chunk
+            to transfer the entire image in one go.</para>
+            <para>The format of the captured images are IIQ files, that can be written directly to disk. However, you must account for
+            data chunks arrive <strong>un-ordered</strong>. This means the received series of chunks and not a stream of bytes.
+            The end of the IIQ file might arrive in a chunk, before the begining. Each chunk will define its global byte offset.</para>
+            <h4>Creating &amp; disposing Camera objects</h4>
+            <para>There is no public <c>constructor</c> on this class. Since this class represents a association with physical cameras,
+            you cannot construct object on your own. Use the static methods <see cref="M:P1.CameraSdk.Camera.OpenUsbCamera(System.String,System.String)"/> or <see cref="M:P1.CameraSdk.Camera.OpenIpCamera(System.String,System.String)"/>
+            to create cameras.</para>
+            <para>This class also implements the <see cref="T:System.IDisposable"/> pattern. This is beause you should be able to close
+            your camera instance immediately, and thereby release the physical camera for use by others.</para>
+            <para>Upon destructing an instance of this class, all associated resources are freed. However, if you do not utilize
+            the <em>dispose pattern</em>, you cannot know when the C# garbage collector collects (frees) the camera. Using <c>IDispose</c>
+            gives you direct control over freeing camera resources.</para>
+            </remarks>
+            <seealso cref="T:P1.CameraSdk.PropertyValue"/>
+            <seealso cref="T:P1.CameraSdk.PropertySpec"/>
+        </member>
+        <member name="M:P1.CameraSdk.Camera.#ctor(System.Int32)">
+            <summary>
+            Private constructor, intended to be used only by <see cref="M:P1.CameraSdk.Camera.OpenUsbCamera(System.String,System.String)"/> and <see cref="M:P1.CameraSdk.Camera.OpenIpCamera(System.String,System.String)"/>
+            </summary>
+        </member>
+        <member name="M:P1.CameraSdk.Camera.#cctor">
+            <summary>
+            All instances of Camera need the uderlying SDK to be opened and ready
+            </summary>
+        </member>
+        <member name="M:P1.CameraSdk.Camera.Close">
+            <summary>
+            Frees the camera handle, letting other processes or resources take over use of the camera.
+            </summary>
+            <remarks>
+            Closing the communication woth the camera and causes any intialized states to shut down.
+            Likewise all event notifications from this camera are removed.
+            </remarks>
+            <exception cref="T:P1.CameraSdk.SdkException">an error-code inside if something else goes wrong</exception>
+        </member>
+        <member name="M:P1.CameraSdk.Camera.GetAvailableCameras">
+            <summary>
+            Returns a list of all available camera <em>currently</em> available.
+            </summary>
+            <remarks>
+            Cameras some and go. The availble cameras might disappear right after this
+            method has returned. Therefore, opening a camera found using this method
+            might still fail.
+            </remarks>
+            <exception cref="T:System.InvalidOperationException">the underlying SDK has failed to open</exception>
+            <exception cref="T:P1.CameraSdk.SdkException">an error-code inside if something else goes wrong</exception>
+            <returns>A list of cameras attached to your host system</returns>
+            <seealso cref="T:P1.CameraSdk.CameraDescriptor"/>
+        </member>
+        <member name="M:P1.CameraSdk.Camera.OpenUsbCamera(System.String,System.String)">
+            <summary>
+            Opens a USB Camera with the given serial-number (or any USB camera if the serial-number is omitted or empty).
+            </summary>
+            <remarks>
+            <para>This is the method from where you obtain Camera objects. You can ask for a specific camera by providing a
+            serial number. Or, you could leave out the serial number, and get the first available camera. This is
+            totally fine, as long as there are only one camera connected to your system.</para>
+            <para>This method does not return cameras connected via TCP/IP.</para>
+            </remarks>
+            <exception cref="T:P1.CameraSdk.SdkException">SdkException with the error-code if something goes wrong.</exception>
+            <param name="serialNum">Optional: The serial of the camera to open. NULL to open first available USB camera.</param>
+            <param name="password">Optional: If the camera is passord protected, supply the password here</param>
+            <returns>A camera object, to control the requirested physical camera</returns>
+        </member>
+        <member name="M:P1.CameraSdk.Camera.OpenIpCamera(System.String,System.String)">
+            <summary>
+            Opens a TCP/IP Camera with the given IPv4 address
+            </summary>
+            <exception cref="T:P1.CameraSdk.SdkException">SdkException with the error-code if something goes wrong.</exception>
+            <param name="ipAddress">The IP address of the camera to connect to, on the form X.X.X.X</param>
+            <param name="password">Optional: If the camera is passord protected, supply the password here</param>
+            <returns>A camera object, to control the requirested physical camera</returns>
+        </member>
+        <member name="M:P1.CameraSdk.Camera.GetAllPropertyIds">
+            <summary>
+            Returns a list of all the properties that this camera support.
+            </summary>
+            <remarks>
+            The list of properties are subject to change, and a property
+            may disappear afterwards - not from the returned list, but from the camera.
+            Similarly, a new property may arrive after this function has been called.
+            </remarks>
+            <exception cref="T:P1.CameraSdk.SdkException">SdkException with the error-code if something goes wrong.</exception>
+            <returns>A list of property ids</returns>
+        </member>
+        <member name="M:P1.CameraSdk.Camera.GetPropertySpec(System.UInt32)">
+            <summary>
+            Return a specification object for a given property.
+            </summary>
+            <param name="propertyId">The Id of the <c>Property</c> to get</param>
+            <exception cref="T:P1.CameraSdk.SdkException">SdkException with the error-code if something goes wrong.</exception>
+            <returns>The specification of the provided PropertyId</returns>
+            <seealso cref="T:P1.CameraSdk.PropertySpec"/>
+        </member>
+        <member name="M:P1.CameraSdk.Camera.SetProperty(System.UInt32,P1.CameraSdk.PropertyValue)">
+            <summary>
+            Set a given property's value
+            </summary>
+            <param name="propertyId">The Id for the property to set</param>
+            <param name="value">The new value of the property</param>
+            <exception cref="T:P1.CameraSdk.SdkException">SdkException with the error-code if something goes wrong.</exception>
+            <seealso cref="T:P1.CameraSdk.PropertyValue"/>
+        </member>
+        <member name="M:P1.CameraSdk.Camera.GetProperty(System.UInt32)">
+            <summary>
+            Gets the current value of a given property
+            </summary>
+            <remarks>
+            The returned <see cref="T:P1.CameraSdk.PropertyValue"/> object is wrapper that encapsulate the property's type.
+            Since properties each can have different types, that is only known at runtime - all property values
+            are wrapped in the <c>PropertyValue</c> class.
+            </remarks>
+            <param name="propertyId">The Id of the property to get</param>
+            <returns>The value object of the property</returns>
+            <exception cref="T:P1.CameraSdk.SdkException">SdkException with the error-code if something goes wrong.</exception>
+        </member>
+        <member name="M:P1.CameraSdk.Camera.TriggerCapture">
+            <summary>
+            Take a picture with the camera
+            </summary>
+            <remarks>
+            <para>This method triggers the camera to take a picture, with its current settings and mode.</para>
+            <para>If you with to receive the picture taken, you must first call <see cref="M:P1.CameraSdk.Camera.EnableImageReceiving(System.Boolean)"/>
+            and set it to <c>true</c>. If not, the triggering will fail if there is no storage media in the camera.</para>
+            <para>Be aware that actual triggering might also fail for a couple of other reasons. If need to listen for
+            the trigger event notification, to be sure that triggering occured.</para>
+            </remarks>
+            <exception cref="T:P1.CameraSdk.SdkException">SdkException with the error-code if something goes wrong.</exception>
+            <seealso cref="M:P1.CameraSdk.Camera.EnableImageReceiving(System.Boolean)"/>
+            <seealso cref="M:P1.CameraSdk.Camera.WaitForImage(System.UInt32)"/>
+        </member>
+        <member name="M:P1.CameraSdk.Camera.EnableImageReceiving(System.Boolean)">
+            <summary>
+            Enable/disable for image transferring to host for this camera.
+            </summary>
+            <remarks>
+            Setting this to `true` tells the camera that the host computer is ready to receive captures.
+            The camera may choose to ignore this (and not transmit any captures), as the storage
+            configuration on the camera decides.
+            </remarks>
+            <param name="enable">`true` is enabled. `false` otherwise.</param>
+            <exception cref="T:P1.CameraSdk.SdkException">SdkException with the error-code if something goes wrong.</exception>
+            <seealso cref="M:P1.CameraSdk.Camera.SetHostStorageCapacity(System.UInt32)"/>
+            <seealso cref="M:P1.CameraSdk.Camera.TriggerCapture"/>
+            <seealso cref="M:P1.CameraSdk.Camera.WaitForImage(System.UInt32)"/>
+        </member>
+        <member name="M:P1.CameraSdk.Camera.SetHostStorageCapacity(System.UInt32)">
+             <summary>
+             Registers this host's available storage capacity (in megabytes).
+             </summary>
+             <remarks>
+             If the host capacity falls below a certain threshold (depending on capture-settings),
+             the camera will reject new captures(depending on storage-settings).
+            
+             Initially, this setting is set to 1GB.
+             </remarks>
+             <param name="capacityMB">This hosts image capacity in megabytes.</param>
+             <exception cref="T:P1.CameraSdk.SdkException">SdkException with the error-code if something goes wrong.</exception>
+             <seealso cref="M:P1.CameraSdk.Camera.EnableImageReceiving(System.Boolean)"/>
+             <seealso cref="M:P1.CameraSdk.Camera.TriggerCapture"/>
+             <seealso cref="M:P1.CameraSdk.Camera.WaitForImage(System.UInt32)"/>
+        </member>
+        <member name="M:P1.CameraSdk.Camera.WakeUpWaitingImageThreads">
+            <summary>
+            Wake up and timeout any threads waiting on image data
+            </summary>
+            <remarks>
+            Threads that have called <see cref="M:P1.CameraSdk.Camera.WaitForImage(System.UInt32)"/> and are blocked, are
+            released (times out) by this method.
+            Use this then you need to exit your application og quickly free up resources.
+            </remarks>
+            <exception cref="T:P1.CameraSdk.SdkException">SdkException with the error-code if something goes wrong.</exception>
+        </member>
+        <member name="M:P1.CameraSdk.Camera.WaitForImage(System.UInt32)">
+            <summary>
+            Wait for the next captured image to arrive
+            </summary>
+            <remarks>
+            Images are transferred as complete in-memory IIQ files. This memory is owned by the API sub-system, and must
+            dispose it as soon as you are done.
+            Before you can receive any images, you must call <see cref="M:P1.CameraSdk.Camera.EnableImageReceiving(System.Boolean)"/> to enable data transfer from the camera.
+            Likewise, this method does not trigger an actual image capture - use <see cref="M:P1.CameraSdk.Camera.TriggerCapture"/> for that.
+            </remarks>
+            <example>
+            using(var image = camera.WaitForImage())
+            {
+                using(var file = FileStream(image.FileName, FileMode.Create))
+                {
+                    image.Data.CopyTo(file);
+                }
+            }
+            </example>
+            <param name="timeoutMs">OPTIONAL: Amount of milliseconds to wait for an image. Zero is forever.</param>
+            <returns>An object descripting the in-memory IIQ file</returns>
+            <seealso cref="M:P1.CameraSdk.Camera.TriggerCapture"/>
+            <seealso cref="M:P1.CameraSdk.Camera.EnableImageReceiving(System.Boolean)"/>
+            <seealso cref="M:P1.CameraSdk.Camera.WakeUpWaitingImageThreads"/>
+        </member>
+        <member name="M:P1.CameraSdk.Camera.SetLiveViewEnable(System.Boolean)">
+            <summary>
+            Turn capturing and transferring of LiveView images on or off
+            </summary>
+            <remarks>
+            <para>To receive a stream of LiveView images, set this to `true`. This causes the camera to begin
+            feeding a stream of bitmap images to you host system.</para>
+            <para>By default LiveView images are 1024 x 768 pixels, and 24 bit RGB. You can change these settings using the _properties_.</para>
+            </remarks>
+            <exception cref="T:P1.CameraSdk.SdkException">SdkException with the error-code if something goes wrong.</exception>
+            <param name="enable">Set to `true` to enable LiveView image transffering.</param>
+            <seealso cref="M:P1.CameraSdk.Camera.WaitForLiveView(System.UInt32)"/>
+        </member>
+        <member name="M:P1.CameraSdk.Camera.WaitForLiveView(System.UInt32)">
+            <summary>
+            Returns a <see cref="T:P1.CameraSdk.LiveViewImage"/>'s with the LiveView bitmap data, and a few properties
+            </summary>
+            <remarks>
+            <para>This method blocks and waits for a LiveView image to be present. To avoid blocking you could utilize
+            the notification system, to only call this method, when a <see cref="F:P1.CameraSdk.CameraEventId.NewLiveViewImage"/>
+            has been received.</para>
+            <para>Before you can receive any LiveView images, you must first enable both <see cref="M:P1.CameraSdk.Camera.EnableImageReceiving(System.Boolean)"/>
+            and <see cref="M:P1.CameraSdk.Camera.SetLiveViewEnable(System.Boolean)"/>.</para>
+            </remarks>
+            <param name="timeoutMs">Optional: The amount of milliseconds to wait, before aborting. Zero is forever.</param>
+            <returns>An in-memory LiveView image object.</returns>
+            <exception cref="T:P1.CameraSdk.SdkException">SdkException with the error-code if something goes wrong.</exception>
+            <seealso cref="M:P1.CameraSdk.Camera.SetLiveViewEnable(System.Boolean)"/>
+        </member>
+        <member name="M:P1.CameraSdk.Camera.GetLiveViewConfiguration">
+            <summary>
+            Returns the LiveView configuration object
+            </summary>
+            <remarks>
+            Use this object to change the LiveView's cropping and size.
+            </remarks>
+        </member>
+        <member name="M:P1.CameraSdk.Camera.ToString">
+            <summary>
+            Reutrn a simple string representation of the camera.
+            </summary>
+            <returns>a string describing the camera object.</returns>
+        </member>
+        <member name="M:P1.CameraSdk.Camera.Dispose">
+            <summary>
+            Closes the camera and releases all resourced held by the camera object
+            </summary>
+        </member>
+        <member name="T:P1.CameraSdk.CameraExtensions.CameraExtensions.ImageDataEnumerator">
+             <summary>
+            
+             </summary>
+             <exclude/>
+        </member>
+        <member name="T:P1.CameraSdk.CameraExtensions.CameraExtensions.ImageDataEnumerable">
+             <summary>
+            
+             </summary>
+             <exclude/>
+        </member>
+        <member name="T:P1.CameraSdk.TetherConnection">
+            <summary>
+            List of possible tether types
+            </summary>
+        </member>
+        <member name="F:P1.CameraSdk.TetherConnection.Undefined">
+            <summary>Caused by an internal error, or the current SDK is outdated.</summary>
+        </member>
+        <member name="F:P1.CameraSdk.TetherConnection.USB">
+            <summary>Camera is connect using USB 1.0/1.1</summary>
+        </member>
+        <member name="F:P1.CameraSdk.TetherConnection.USB2">
+            <summary>Camera is connect using USB 2.0</summary>
+        </member>
+        <member name="F:P1.CameraSdk.TetherConnection.USB3">
+            <summary>Camera is connect using USB 3.0 / 3.1</summary>
+        </member>
+        <member name="F:P1.CameraSdk.TetherConnection.TCPIP">
+            <summary>Camera is available over TCP/IP socket, and discovered using Bonjour</summary>
+        </member>
+        <member name="T:P1.CameraSdk.ErrorCode">
+            <summary>
+            A list of error codes, representing error conditions occuring in
+            the SDK internals.
+            </summary>
+            <seealso cref="T:P1.CameraSdk.SdkException"/>
+        </member>
+        <member name="T:P1.CameraSdk.NotificationType">
+            <summary>
+            List of possible Notifications types
+            </summary>
+        </member>
+        <member name="F:P1.CameraSdk.NotificationType.Undefined">
+            <summary>Unknown type, possible caused by the SDK being outdated or corrupt</summary>
+        </member>
+        <member name="F:P1.CameraSdk.NotificationType.Property">
+            <summary>Notification signals is a property change</summary>
+        </member>
+        <member name="F:P1.CameraSdk.NotificationType.CameraEvent">
+            <summary>Notification signals a camera action event</summary>
+        </member>
+        <member name="F:P1.CameraSdk.NotificationType.SdkEvent">
+            <summary>Notification signals state change in the SDK</summary>
+        </member>
+        <member name="F:P1.CameraSdk.NotificationType.SpecificationChange">
+            <summary>Notification signals is a property specification change (not its value)</summary>
+        </member>
+        <member name="T:P1.CameraSdk.CameraEventId">
+            <summary>
+            List of events originating from a specfic Camera
+            </summary>
+        </member>
+        <member name="F:P1.CameraSdk.CameraEventId.Undefined">
+            <summary>An undefined event type, intended use is as null event </summary>
+        </member>
+        <member name="F:P1.CameraSdk.CameraEventId.ImageTransferBegin">
+            <summary>The camera has started tramsfering an image (0% complete)</summary>
+        </member>
+        <member name="F:P1.CameraSdk.CameraEventId.ImageTransferProgress">
+            <summary>A progress update on the current image transfer (+1% or more)</summary>
+        </member>
+        <member name="F:P1.CameraSdk.CameraEventId.ImageReady">
+            <summary>A chunk of image data ready to be read, as result of previous capture</summary>
+        </member>
+        <member name="F:P1.CameraSdk.CameraEventId.Disconnected">
+            <summary>Camera disconnected and therefore unavailable</summary>
+        </member>
+        <member name="F:P1.CameraSdk.CameraEventId.LiveViewStarted">
+            <summary>LiveView system will begin to feeding images</summary>
+        </member>
+        <member name="F:P1.CameraSdk.CameraEventId.LiveViewStopped">
+            <summary>LiveView system stopped feeding images, and is powered down.</summary>
+        </member>
+        <member name="F:P1.CameraSdk.CameraEventId.NewLiveViewImage">
+            <summary>A new LiveView image has arrived and is ready to be consumed by you</summary>
+        </member>
+        <member name="F:P1.CameraSdk.CameraEventId.PropertyAdded">
+            <summary>A new property became present on the camera</summary>
+        </member>
+        <member name="F:P1.CameraSdk.CameraEventId.PropertyRemoved">
+            <summary>A property was removed from the camera</summary>
+        </member>
+        <member name="T:P1.CameraSdk.SdkEventId">
+            <summary>
+            List of events related to the SDK itself. These events are not related to a <see cref="T:P1.CameraSdk.Camera"/>
+            instance.
+            </summary>
+        </member>
+        <member name="F:P1.CameraSdk.SdkEventId.Undefined">
+            <summary>A _not set_ value for SdkEvent</summary>
+        </member>
+        <member name="F:P1.CameraSdk.SdkEventId.CameraFound">
+            <summary>A camera was connected to the computer</summary>
+        </member>
+        <member name="F:P1.CameraSdk.SdkEventId.CameraRemoved">
+            <summary>A (not opened) camera was removed from computer</summary>
+        </member>
+        <member name="F:P1.CameraSdk.SdkEventId.CameraOpened">
+            <summary>A camera was opened by the SDK (on this computer)</summary>
+        </member>
+        <member name="F:P1.CameraSdk.SdkEventId.CameraClosed">
+            <summary>A camera was closed by the SDK (on this computer)</summary>
+        </member>
+        <member name="T:P1.CameraSdk.Listener">
+             <summary>
+             An event listening context that receives events from Cameras or the SDK itself.
+             </summary>
+             <remarks>
+             Instances of this class acts as an event central, where notifications (events) are arriving from
+             cameras and SDK. You should use a dedicated thread or task to handle all these incoming notifications.
+             <h4>Notifications</h4>
+             <para>Before a listener will receive any notifications, you must <em>Enable</em> at least one notification.
+             A notification can be one of three types: a <em>property change</em>, a <em>camera action</em> or an
+             <em>SDK event</em>.</para>
+             <para>When a notification is enabled, events for this notification will begin arriving to the <c>Listener</c>
+             object. At any time you can enable more notifications or disable them.</para>
+             <h4>Handling incoming events</h4>
+             <para>We are using a very simple scheme to handle events. Our aim is to be as generic and cross platform (or framework) as
+             possible. You should handle incoming notifications in a separate thread, since our API methods are blocking.</para>
+             <para>To receive incoming events, a separate thread or task should call <see cref="M:P1.CameraSdk.Listener.WaitForNotification(System.UInt32)"/> from
+             within an event processing loop. This call will block until an notification arrives, and the event should be handled.
+             Then the thread should loop, to call <c>WaitForNotification</c> again.</para>
+             <h4>Disposing and graceful termination</h4>
+             <para>Because the event handling thread spend its time in a blocked call, you must take care of it when terminating
+             your app. You can release all blocked threads blocked inside <see cref="M:P1.CameraSdk.Listener.WaitForNotification(System.UInt32)"/> by issueing
+             a call to the <see cref="M:P1.CameraSdk.Listener.WakeUpWaitingThread"/> method, from any other thread.</para>
+             <para>Likewise, it is important to <em>disable</em> all notifications from any <see cref="T:P1.CameraSdk.Camera"/>
+             that you are about to dispose.</para>
+             <h4>Mapping to other events schemes</h4>
+             <para>As previously stated, the event handling scheme is meant to be cross platform - not C#'ish in particular.
+             Therefore we recommend that you integrate it with the native event system of your platform or framework.</para>
+             <para>Say you are working with WPF, you could integrate our notifications with
+             <see cref="T:System.ComponentModel.INotifyPropertyChanged"/> scheme used by WPF.
+             Other schemes could utlize the <see cref="T:System.EventHandler"/> delegate.</para>
+             <para>Sommon for all implementations, is that the event handling thread should only dispatch notification,
+             not act upon them. All business logic called as a result of a incoming notification, must
+             be delegated to other threads or tasks. This is important because it keeps the event handling thread responsive.</para>
+             </remarks>
+             <example>
+             This example shows how to create a <c>Listener</c> and listen for 2 notifications.
+             A dedicated thread is handling the incoming events, and gets signalled when
+             the user presses the <em>Enter</em> key.
+             <code>
+             var eventCentral = new Listener();
+             var eventThread = new Thread(() => {
+                 while(true) {
+                     var notification = eventCentral.WaitForNotification();
+                     if (notification == null)
+                     {
+                         Console.WriteLine("Timeout or signalled wake-up!");
+                         break;
+                     }
+                     if (notification.mSdkEventId == SdkEventId.CameraAdded)
+                     {
+                         Console.WriteLine("Camera Added");
+                     }
+                     else if (notification.mSdkEventId == SdkEventId.CameraRemoved)
+                     {
+                         Console.WriteLine("Camera Removed");
+                     }
+                     else
+                     {
+                         Console.WriteLine("Got unknown: {0}", notification);
+                         break;
+                     }
+                 }
+             });
+            
+             eventCentral.EnableNotification(SdkEventId.CameraAdded)
+             eventCentral.EnableNotification(SdkEventId.CameraRemoved)
+            
+             Console.ReadLine("Press Enter to stop...");
+             eventCentral.WakeUpWaitingThreads();
+             eventThread.join();
+             </code>
+             As the example shows, you can begin listening for events, after you have started
+             your event handler thread loop. Other threads can enable and disable notifications
+             dynamically, meaning while the event handler thread is running.
+             </example>
+             <seealso cref="T:P1.CameraSdk.CameraEventId"/>
+             <seealso cref="T:P1.CameraSdk.SdkEventId"/>
+             <seealso cref="T:P1.CameraSdk.NotificationEvent"/>
+        </member>
+        <member name="P:P1.CameraSdk.Listener.Id">
+            <summary>
+            Internal Id used by the underlying SDK event system
+            </summary>
+            <value>The Id of this event listener</value>
+            <exclude/>
+        </member>
+        <member name="M:P1.CameraSdk.Listener.#ctor">
+            <summary>
+            Creates an Listener object, to handle notifications
+            </summary>
+            <remarks>
+            The newly created object does not receive any events, before you have enabled at least
+            one notification, using one of <c>EnableNotification</c> methods.
+            </remarks>
+            <exception cref="T:P1.CameraSdk.SdkException">an error-code inside if something goes wrong</exception>
+            <seealso cref="M:P1.CameraSdk.Listener.EnableNotification(P1.CameraSdk.Camera,System.UInt32,System.Boolean)"/>
+            <seealso cref="M:P1.CameraSdk.Listener.EnableNotification(P1.CameraSdk.Camera,P1.CameraSdk.CameraEventId)"/>
+            <seealso cref="M:P1.CameraSdk.Listener.EnableNotification(P1.CameraSdk.SdkEventId)"/>
+        </member>
+        <member name="M:P1.CameraSdk.Listener.EnableNotification(P1.CameraSdk.Camera,System.UInt32,System.Boolean)">
+            <summary>
+            Begin receiving <em>property</em> notifications from a specific camera
+            </summary>
+            <remarks>
+            <para>By default this method enables <em>value change</em> notifications. Set <c>isSpecificationChange</c>
+            to <c>true</c> to listener for <em>specification change</em> notifications instead.</para>
+            <para>After calling this method, the <see cref="T:P1.CameraSdk.Listener"/> object will begin receiving
+            notifications, for the given property and camera.</para>
+            <para>The <c>(Camera, PropertyId)</c> tuple uniquely defines the notification listener.
+            So calling this method with the same parameters later, has no effect.</para>
+            <para>WHen you are done listening on the property or you are about to dispose the
+            <see cref="T:P1.CameraSdk.Camera"/> object, remember to disable the notification listener.</para>
+            </remarks>
+            <param name="camera">The camera to listen for properties changes on</param>
+            <param name="propertyId">The Id of the property to listen for</param>
+            <param name="isSpecificationChange">Optional set to <c>true</c>, to listen for specification change events, instead of value change</param>
+            <exception cref="T:P1.CameraSdk.SdkException">an error-code inside if something goes wrong</exception>
+            <seealso cref="M:P1.CameraSdk.Listener.EnableNotification(P1.CameraSdk.Camera,P1.CameraSdk.CameraEventId)"/>
+            <seealso cref="M:P1.CameraSdk.Listener.EnableNotification(P1.CameraSdk.SdkEventId)"/>
+            <seealso cref="M:P1.CameraSdk.Listener.DisableNotification(P1.CameraSdk.Camera,System.UInt32,System.Boolean)"/>
+        </member>
+        <member name="M:P1.CameraSdk.Listener.EnableNotification(P1.CameraSdk.Camera,P1.CameraSdk.CameraEventId)">
+            <summary>
+            Begin receiving <em>camera action</em> notifications from a specific camera
+            </summary>
+            <remarks>
+            <para>After calling this method, the <see cref="T:P1.CameraSdk.Listener"/> object will begin receiving
+            notifications, for the given action event and camera.</para>
+            <para>The <c>(Camera, CameraEventId)</c> tuple uniquely defines the notification listener.
+            So calling this method with the same parameters later, has no effect.</para>
+            <para>When you are done listening on the <see cref="T:P1.CameraSdk.CameraEventId"/> or you are about to dispose the
+            <see cref="T:P1.CameraSdk.Camera"/> object, remember to disable the notification listener.</para>
+            </remarks>
+            <param name="camera">The camera to receive action notifications from</param>
+            <param name="cameraEventId">The specific event the symbolizes the action</param>
+            <exception cref="T:P1.CameraSdk.SdkException">an error-code inside if something goes wrong</exception>
+            <seealso cref="M:P1.CameraSdk.Listener.EnableNotification(P1.CameraSdk.Camera,System.UInt32,System.Boolean)"/>
+            <seealso cref="M:P1.CameraSdk.Listener.EnableNotification(P1.CameraSdk.SdkEventId)"/>
+            <seealso cref="M:P1.CameraSdk.Listener.DisableNotification(P1.CameraSdk.Camera,P1.CameraSdk.CameraEventId)"/>
+        </member>
+        <member name="M:P1.CameraSdk.Listener.EnableNotification(P1.CameraSdk.SdkEventId)">
+            <summary>
+            Begin receiving <em>SDK</em> notifications, that is <em>not</em> related to a specific camera
+            </summary>
+            <remarks>
+            <para>After calling this method, the <see cref="T:P1.CameraSdk.Listener"/> object will begin receiving
+            notifications from the SDK</para>
+            <para>The <c>SdkEventId</c> uniquely defines the notification listener.
+            So calling this method with the same parameters later, has no effect.</para>
+            <para>When you are done listening on the <see cref="T:P1.CameraSdk.SdkEventId"/>,
+            remember to disable the notification listener.</para>
+            </remarks>
+            <param name="sdkEvent">The Id of the SDK event to listner for</param>
+            <exception cref="T:P1.CameraSdk.SdkException">an error-code inside if something goes wrong</exception>
+            <seealso cref="M:P1.CameraSdk.Listener.EnableNotification(P1.CameraSdk.Camera,System.UInt32,System.Boolean)"/>
+            <seealso cref="M:P1.CameraSdk.Listener.EnableNotification(P1.CameraSdk.Camera,P1.CameraSdk.CameraEventId)"/>
+            <seealso cref="M:P1.CameraSdk.Listener.DisableNotification(P1.CameraSdk.SdkEventId)"/>
+        </member>
+        <member name="M:P1.CameraSdk.Listener.EnableCatchAllNotifications">
+            <summary>
+            Enable "catch all" state on this listener
+            </summary>
+            <remarks>
+            In "catch all" state, every notification generated by the SDK is
+            delivered to this listener. (Across all opened cameras!)
+            This also has the effect of enabling notifications for properties that are
+            not currently visible on the cameras. (Due to the cameras state.)
+            </remarks>
+        </member>
+        <member name="M:P1.CameraSdk.Listener.DisableNotification(P1.CameraSdk.Camera,System.UInt32,System.Boolean)">
+            <summary>
+            Stop receiving <em>property changed</em> notifications from a specific camera
+            </summary>
+            <remarks>
+            <para>After calling this method, the <see cref="T:P1.CameraSdk.Listener"/> object will no longer receive
+            notifications, for the given property and camera.</para>
+            <para>When you are done listening on the property or you are about to dispose the
+            <see cref="T:P1.CameraSdk.Camera"/> object, you should call this method.</para>
+            </remarks>
+            <param name="camera">The camera to listen for properties changes on</param>
+            <param name="propertyId">The Id of the property to listen for</param>
+            <param name="isSpecificationChange">Optional set to <c>true</c>, to disable notifications from specification change events, instead of value changes</param>
+            <exception cref="T:P1.CameraSdk.SdkException">an error-code inside if something goes wrong</exception>
+            <seealso cref="M:P1.CameraSdk.Listener.EnableNotification(P1.CameraSdk.Camera,System.UInt32,System.Boolean)"/>
+            <seealso cref="M:P1.CameraSdk.Listener.DisableNotification(P1.CameraSdk.Camera,P1.CameraSdk.CameraEventId)"/>
+            <seealso cref="M:P1.CameraSdk.Listener.DisableNotification(P1.CameraSdk.SdkEventId)"/>
+        </member>
+        <member name="M:P1.CameraSdk.Listener.DisableNotification(P1.CameraSdk.Camera,P1.CameraSdk.CameraEventId)">
+            <summary>
+            Stop receiving <em>camera action</em> notifications from a specific camera
+            </summary>
+            <remarks>
+            <para>After calling this method, the <see cref="T:P1.CameraSdk.Listener"/> object will no longer receive
+            notifications, for the given action event and camera.</para>
+            <para>When you are done listening on the <see cref="T:P1.CameraSdk.CameraEventId"/> or you are about to dispose the
+            <see cref="T:P1.CameraSdk.Camera"/> object, you should call this method.</para>
+            </remarks>
+            <param name="camera">The camera to receive action notifications from</param>
+            <param name="cameraEventId">The specific event the symbolizes the action</param>
+            <exception cref="T:P1.CameraSdk.SdkException">an error-code inside if something goes wrong</exception>
+            <seealso cref="M:P1.CameraSdk.Listener.EnableNotification(P1.CameraSdk.Camera,P1.CameraSdk.CameraEventId)"/>
+            <seealso cref="M:P1.CameraSdk.Listener.DisableNotification(P1.CameraSdk.Camera,System.UInt32,System.Boolean)"/>
+            <seealso cref="M:P1.CameraSdk.Listener.DisableNotification(P1.CameraSdk.SdkEventId)"/>
+        </member>
+        <member name="M:P1.CameraSdk.Listener.DisableNotification(P1.CameraSdk.SdkEventId)">
+            <summary>
+            Stop receiving <em>SDK</em> notifications
+            </summary>
+            <remarks>
+            <para>After calling this method, the <see cref="T:P1.CameraSdk.Listener"/> object will no longer receive
+            notifications from the SDK</para>
+            </remarks>
+            <param name="sdkEvent">The Id of the SDK event to listner for</param>
+            <exception cref="T:P1.CameraSdk.SdkException">an error-code inside if something goes wrong</exception>
+            <seealso cref="M:P1.CameraSdk.Listener.EnableNotification(P1.CameraSdk.SdkEventId)"/>
+            <seealso cref="M:P1.CameraSdk.Listener.DisableNotification(P1.CameraSdk.Camera,System.UInt32,System.Boolean)"/>
+            <seealso cref="M:P1.CameraSdk.Listener.DisableNotification(P1.CameraSdk.Camera,P1.CameraSdk.CameraEventId)"/>
+        </member>
+        <member name="M:P1.CameraSdk.Listener.DisableAllNotifications">
+            <summary>
+            Disable all enabled notification on the listener.
+            </summary>
+            <remarks>
+            <para>This convenience method lets you remove all the active listeners from the
+            <see cref="T:P1.CameraSdk.Listener"/> in one go. This is effective when your application is
+            about to terminate.</para>
+            <para>This method effectivly remove all references that the <c>Listener</c> might
+            have to <see cref="T:P1.CameraSdk.Camera"/> instances.</para>
+            <para>If you are about to tewrminate your app, please also remember to wake-up
+            any blocked event threads, using <see cref="M:P1.CameraSdk.Listener.WakeUpWaitingThread"/>.</para>
+            </remarks>
+            <exception cref="T:P1.CameraSdk.SdkException">an error-code inside if something goes wrong</exception>
+            <seealso cref="M:P1.CameraSdk.Listener.WakeUpWaitingThread"/>
+        </member>
+        <member name="M:P1.CameraSdk.Listener.DisableCatchAllNotification">
+            <summary>
+            Disable "catch all" state on the listener
+            </summary>
+            <remarks>
+            This deactivates the delivery of all types of notifications to this listener.
+            The listener state is returned to normal, where only enabled notification
+            will be delivered. (The ones enabled calling EnableNotification...)
+            Any explicitly enabled notifications will be preserved, and are thus not
+            affected by disabling "catch all" state.
+            </remarks>
+        </member>
+        <member name="M:P1.CameraSdk.Listener.WakeUpWaitingThread">
+            <summary>
+            Wake up all threads blocked inside the <c>WaitForNotification</c> method
+            </summary>
+            <remarks>
+            <para>Forced all thread waiting for notifications on this <c>Listener</c> to timeout
+            immediately. This means any thread blocked inside the <see cref="M:P1.CameraSdk.Listener.WaitForNotification(System.UInt32)"/> method
+            will return from that call.</para>
+            <para>This is useful to exit threads gracefully when terminating your application.</para>
+            <para>This method does not invalid or change the state of the <c>Listener</c>. It is perfectly
+            fine for threads to begin waiting for new events, after this method has been called.</para>
+            </remarks>
+            <exception cref="T:P1.CameraSdk.SdkException">an error-code inside if something goes wrong</exception>
+            <seealso cref="M:P1.CameraSdk.Listener.WaitForNotification(System.UInt32)"/>
+            <seealso cref="M:P1.CameraSdk.Listener.DisableAllNotifications"/>
+        </member>
+        <member name="M:P1.CameraSdk.Listener.WaitForNotification(System.UInt32)">
+            <summary>
+            Block the thread and wait for the next notification to arrive
+            </summary>
+            <remarks>
+            <para>This method is used to process incoming notifications. A received notification is returned
+            this this method, as soon as it arrives. Only notifications that you have <em>enabled</em> will
+            arrive.</para>
+            <para>You can define a timeout, where the method should return and let you thread do other work.seealso
+            If a timeout occurs, or another thread has called <see cref="M:P1.CameraSdk.Listener.WakeUpWaitingThread"/>, this method
+            return <c>null</c>.</para>
+            </remarks>
+            <param name="timeoutMs">Optional: Provide a timeout in milliseconds.seealso Zero is no timeout.</param>
+            <returns>A received notification or <c>null</c> if timed out.</returns>
+            <exception cref="T:P1.CameraSdk.SdkException">an error-code inside if something goes wrong</exception>
+            <seealso cref="M:P1.CameraSdk.Listener.EnableNotification(P1.CameraSdk.Camera,System.UInt32,System.Boolean)"/>
+            <seealso cref="M:P1.CameraSdk.Listener.WakeUpWaitingThread"/>
+        </member>
+        <member name="M:P1.CameraSdk.Listener.Dispose">
+            <summary>
+            Invalidate this listener object, waking up all blocked threads and disabling all
+            notifications.
+            </summary>
+            <exception cref="T:P1.CameraSdk.SdkException">an error-code inside if something goes wrong</exception>
+        </member>
+        <member name="M:P1.CameraSdk.Listener.Dispose(System.Boolean)">
+            <summary>
+            Invalidate this listener object, waking up all blocked threads and disabling all
+            notifications.
+            </summary>
+            <remarks>
+            This <c>protected</c> method is intended use for use subclasses of <see cref="T:P1.CameraSdk.Listener"/> only.
+            </remarks>
+            <param name="disposing">Unused. Only here for conformence to the .NET <em>dispose pattern</em></param>
+            <exception cref="T:P1.CameraSdk.SdkException">an error-code inside if something goes wrong</exception>
+            <seealso cref="M:P1.CameraSdk.Listener.Dispose"/>
+        </member>
+        <member name="T:P1.CameraSdk.Sdk">
+            <summary>
+            A singleton class that represents the state of the CameraSDK
+            </summary>
+            <remarks>
+            <para>This class represents the SDK using the <em>singleton</em> pattern.
+            There can only be one SDK per process, and the SDK singleton object
+            ensures that only one instance is initialized.</para>
+            <h4>Opening and closing the SDK</h4>
+            <para>Before any interaction with cameras or events can take place, the SDK must
+            be initialized - or <em>opened</em>. Opening menas that the underlying USB stack
+            is initialized, and threads to listen for cameras are created.</para>
+            <para>All SDK classes, that depend on an <em>opened</em> SDK will automatically open it when constructed.</para>
+            <para>Likewise, to ensure graceful termination of you process, the SDK should be <em>closed</em>
+            before your application terminates. This allows the USB threads to terminate gracefully.</para>
+            <h5>Dispose pattern</h5>
+            <para>This class implements <see cref="T:System.IDisposable"/> such that you can directly control
+            when the SDK is opened and closed. You do not nessesary have to use the <em>dispose pattern</em>,
+            it might fit your needs to just depend on the garbage collector, to eventually collect the SDK
+            and thereby <em>close</em> it.</para>
+            <h4>Debug Logging</h4>
+            <para>You can differentiate between levels of logging messages from the SDK. By default no log output
+            is seen. But you might choose to display log messages to debug your code.</para>
+            <para>Logging are setup by providing a log callback function, that receives
+            the message and outputs to for example the <c>Console</c>.</para>
+            </remarks>
+        </member>
+        <member name="T:P1.CameraSdk.Sdk.LogMessageLevel">
+            <summary>
+            List of the different verbosity levels for logging
+            </summary>
+        </member>
+        <member name="T:P1.CameraSdk.Sdk.LogHandlerFunction">
+            <summary>
+            The callback function used to printer logging messages
+            </summary>
+            <param name="level">The messages verbosity level. Used to include the level name in the output message</param>
+            <param name="message">The log message coming from the SDK iternals</param>
+        </member>
+        <member name="P:P1.CameraSdk.Sdk.Get">
+            <summary>
+            Creates and / or returns an instance of the SDK. (Thread safe)
+            </summary>
+            <value>The singleton instance of the SDK object</value>
+        </member>
+        <member name="M:P1.CameraSdk.Sdk.EnsureOpen">
+            <summary>
+            Open the Camera SDK if not already open
+            </summary>
+            <remarks>
+            This method is automatically called by SDK classes. You should not have to call this manually.
+            </remarks>
+            <exception cref="T:System.DllNotFoundException">One of the SDK dependencies (DLL file) could not found</exception>
+            <exception cref="T:P1.CameraSdk.SdkException">an error-code inside if something else goes wrong</exception>
+        </member>
+        <member name="M:P1.CameraSdk.Sdk.EnsureClosed">
+            <summary>
+            Closes the SDK if not already closed.
+            </summary>
+            <remarks>
+            If your application does not use the <em>dispose patten</em> for the SDK, you
+            should call this method just before your app terminates.
+            </remarks>
+            <exception cref="T:P1.CameraSdk.SdkException">an error-code inside if something else goes wrong</exception>
+        </member>
+        <member name="M:P1.CameraSdk.Sdk.SetLoggingHandler(P1.CameraSdk.Sdk.LogHandlerFunction)">
+            <summary>
+            Provide a callback function to display all log messages coming from the SDK
+            </summary>
+            <remarks>
+            You receive log messages for all levels, so you are responsible of filtering to ones
+            you would like to appear in your logs.
+            </remarks>
+            <param name="printer">The callback function that receives the log messages</param>
+            <seealso cref="M:P1.CameraSdk.Sdk.ClearLoggingHandler"/>
+        </member>
+        <member name="M:P1.CameraSdk.Sdk.ClearLoggingHandler">
+            <summary>
+            Remove a previously provided LogHandlerFunction callback
+            </summary>
+            <seealso cref="M:P1.CameraSdk.Sdk.SetLoggingHandler(P1.CameraSdk.Sdk.LogHandlerFunction)"/>
+        </member>
+        <member name="M:P1.CameraSdk.Sdk.Dispose">
+            <summary>
+            Force deallocation of the SDK, ensuring that it is closed.
+            </summary>
+        </member>
+        <member name="M:P1.CameraSdk.Sdk.GetLatestErrorMessage">
+            <summary>
+            This is used by the <see cref="T:P1.CameraSdk.SdkException"/>, and is not
+            intended to be called by a SDK end user.
+            </summary>
+        </member>
+        <member name="T:P1.CameraSdk.SdkException">
+            <summary>
+            A simple subclass of the <see cref="T:System.Exception"/> class for SDK caused exceptions.
+            Wraps an SDK <see cref="T:P1.CameraSdk.ErrorCode"/> for resolving the corresponding error.
+            </summary>
+            <remarks>
+            To catch any SDK related errors, you can <c>try catch</c> on this class. If you need to
+            distinguish between different kind of SDK errors, you can filter on the <see cref="P:P1.CameraSdk.SdkException.ErrorCode"/>
+            property.
+            </remarks>
+            <example>
+            Here we use the <c>when</c> clause to filter specific SDK errors:
+            <code>
+            try
+            {
+                var camera = Camera.OpenUsbCamera();
+            }
+            catch(SdkException e) when (e.mErrorCode == kErrorCameraNotFound)
+            {
+                Console.WriteLine($"Camera not opened, error: {e}");
+            }
+            </code>
+            Here the string interpolation (<c>$"... error: {e}"</c>) uses the <see cref="M:P1.CameraSdk.SdkException.ToString"/> to print the
+            SDK's error description.
+            </example>
+            <seealso cref="T:P1.CameraSdk.ErrorCode"/>
+        </member>
+        <member name="P:P1.CameraSdk.SdkException.ErrorCode">
+            <summary>
+            The error code provided by the underlying SDK
+            </summary>
+            <value>SDK error code</value>
+        </member>
+        <member name="P:P1.CameraSdk.SdkException.ErrorMessage">
+            <summary>
+            Optional error description from the SDK
+            </summary>
+            <value>SDK error description</value>
+        </member>
+        <member name="M:P1.CameraSdk.SdkException.#ctor(P1.CameraSdk.ErrorCode)">
+            <summary>
+            Create an SDK error from an ErrorCode, with an automatically loaded description
+            </summary>
+            <remarks>
+            <para>If the SDK has an internal error description, this is copied to the
+            <see cref="P:P1.CameraSdk.SdkException.ErrorMessage"/> property.</para>
+            <para>Since the <see cref="P:System.Exception.Message"/> is read only, it cannot be used to contains the
+            error description.</para>
+            </remarks>
+            <param name="errorCode">The cause of the exception</param>
+            <returns>An exception that can be thrown</returns>
+        </member>
+        <member name="M:P1.CameraSdk.SdkException.ToString">
+            <summary>
+            A string representation of the SDK exception
+            </summary>
+            <remarks>
+            If there is a <see cref="P:P1.CameraSdk.SdkException.ErrorMessage"/> this is displayed instead of the <see cref="P:System.Exception.Message"/> property.
+            </remarks>
+            <returns>A human readable string to describe the exception</returns>
+        </member>
+        <member name="T:P1.CameraSdk.CameraDescriptor">
+            <summary>
+            Brief description of a camera - without necessarily having to open it
+            </summary>
+            <remarks>
+            This class is used by the <see cref="M:P1.CameraSdk.Camera.GetAvailableCameras"/> method, to
+            return a list of available cameras. You do not have to create instances of the
+            class youself.
+            </remarks>
+            <seealso cref="M:P1.CameraSdk.Camera.GetAvailableCameras"/>
+        </member>
+        <member name="P:P1.CameraSdk.CameraDescriptor.IPv4">
+            <summary>
+            Camera's IP address, if it is available via TCP/IP
+            </summary>
+        </member>
+        <member name="P:P1.CameraSdk.CameraDescriptor.IsOpen">
+            <summary>
+            Boolean stating if the camera is/was opened by this SDK, when the entry was populated.
+            One can register for the SDK-events, SdkEventId.CameraOpened and/or SdkEventId.CameraClosed, for notifications.
+            </summary>
+        </member>
+        <member name="T:P1.CameraSdk.ValuePoint">
+            <summary>
+            Point class, defining an X and Y integer coordinates
+            </summary>
+            <remarks>
+            This class is used by the property system, to represent 2D points.
+            </remarks>
+            <seealso cref="T:P1.CameraSdk.PropertyValue"/>
+        </member>
+        <member name="T:P1.CameraSdk.ValueColorFloat">
+            <summary>
+            RGBA style Color representation, using floating point values
+            </summary>
+            <remarks>
+            <para>This class is used by the property system, to represent RGBA colors.</para>
+            <para>Color component value spans are from 0.0 to 1.0</para>
+            </remarks>
+            <seealso cref="T:P1.CameraSdk.PropertyValue"/>
+        </member>
+        <member name="T:P1.CameraSdk.ValueArea">
+            <summary>
+            A 2D area, represented by integers for width and height
+            </summary>
+            <remarks>
+            <para>This class is used by the property system, to represent areas, without any reference position.</para>
+            </remarks>
+            <seealso cref="T:P1.CameraSdk.PropertyValue"/>
+        </member>
+        <member name="T:P1.CameraSdk.ValueAreaFloat">
+            <summary>
+            A 2D area, represented by floats for width and height
+            </summary>
+            <remarks>
+            <para>This class is used by the property system, to represent areas, without any reference position.</para>
+            </remarks>
+            <seealso cref="T:P1.CameraSdk.PropertyValue"/>
+        </member>
+        <member name="T:P1.CameraSdk.ValueRange">
+            <summary>
+            A value range spanned by two integers, min and max.
+            </summary>
+            <seealso cref="T:P1.CameraSdk.PropertyValue"/>
+        </member>
+        <member name="T:P1.CameraSdk.ValueRangeFloat">
+            <summary>
+            A value range spanned by two integers, min and max.
+            </summary>
+            <seealso cref="T:P1.CameraSdk.PropertyValue"/>
+        </member>
+        <member name="T:P1.CameraSdk.ValueRect">
+            <summary>
+            A rectangle defined by a <em>Position</em> and a <em>Area</em>
+            </summary>
+            <remarks>
+            <para>This class is used by the property system, to represent rectangular section of an image.</para>
+            </remarks>
+            <seealso cref="T:P1.CameraSdk.PropertyValue"/>
+        </member>
+        <member name="T:P1.CameraSdk.PropertyRange">
+            <summary>
+            Define a valid range of values, that a Property might enforce
+            </summary>
+            <remarks>
+            This class is used to define a minimum and maximum value for a property.
+            </remarks>
+            <seealso cref="T:P1.CameraSdk.PropertySpec"/>
+        </member>
+        <member name="T:P1.CameraSdk.PropertyValue">
+            <summary>
+            Hold a single property value, and acts like a union of different property types
+            </summary>
+        </member>
+        <member name="M:P1.CameraSdk.PropertyValue.ToString">
+            <summary>
+            Returns a simple string representation of this property
+            </summary>
+            <returns>A string value that describes the PropertyValue's value</returns>
+        </member>
+        <member name="T:P1.CameraSdk.NotificationEvent">
+            <summary>
+            A notification class that include type and origin
+            </summary>
+            <remarks>
+            <para>The event system uses this notification class to symbolize an incoming event.
+            Such event can be one of three types: <em>Property changed</em>, <em>camera action</em>
+            or <em>sdk state change</em>. The current type of the event are defined by the property:
+            <see cref="P:P1.CameraSdk.NotificationEvent.NotificationType"/>.</para>
+            <para>All notifucation types except <em>sdk state changes</em> refer to a <see cref="P:P1.CameraSdk.NotificationEvent.Camera"/>
+            where the event originated.</para>
+            </remarks>
+            <seealso cref="T:P1.CameraSdk.Listener"/>
+        </member>
+        <member name="P:P1.CameraSdk.NotificationEvent.Camera">
+            <summary>
+            The camera that triggered the notitification, or <c>null</c>
+            </summary>
+            <value>Reference to a camera instance</value>
+        </member>
+        <member name="P:P1.CameraSdk.NotificationEvent.NotificationType">
+            <summary>
+            The type of the current notification
+            </summary>
+            <value>One of three possible notification types</value>
+        </member>
+        <member name="P:P1.CameraSdk.NotificationEvent.PropertyId">
+            <summary>
+            If this notification is a <em>property changed</em> type, this holds the Id that was changed
+            </summary>
+            <value>The Id of the property that was changed, or <c>null</c></value>
+        </member>
+        <member name="P:P1.CameraSdk.NotificationEvent.CameraEventId">
+            <summary>
+            If this notification is a <em>camera action</em> type, this holds the Id of that action.
+            </summary>
+            <value>The camera event Id, or <c>null</c></value>
+        </member>
+        <member name="P:P1.CameraSdk.NotificationEvent.SdkEventId">
+            <summary>
+            If this notification is a <em>sdk state change</em> type, this holds the Id of the change
+            </summary>
+            <value>The SDK event Id, or <c>null</c></value>
+        </member>
+        <member name="T:P1.CameraSdk.ImageDataChunk">
+            <summary>
+            Holds a single chunk of binary image data,
+            and defines the data position in the overall data stream
+            </summary>
+            <remarks>
+            <para>The <see cref="T:P1.CameraSdk.Camera"/> class uses this class to deliver the data of captured
+            images or LiveViews. Such data arrive in chunks, and in no particular order!</para>
+            <para>This class lets you read the binary data provided, and identify where it
+            is positioned in the full image. It also help you determined if more chunks are
+            expected to arrive, be checking if the <see cref="P:P1.CameraSdk.ImageDataChunk.RemainingBytes"/> is zero.</para>
+            </remarks>
+            <seealso cref="M:P1.CameraSdk.Camera.WaitForImage(System.UInt32)"/>
+            <seealso cref="M:P1.CameraSdk.Camera.WaitForLiveView(System.UInt32)"/>
+        </member>
+        <member name="P:P1.CameraSdk.ImageDataChunk.ImageId">
+            <summary>
+            The camera defined image Id, that this chunk is part of
+            </summary>
+        </member>
+        <member name="P:P1.CameraSdk.ImageDataChunk.Data">
+            <summary>
+            The binary data included in this image data chunk
+            </summary>
+        </member>
+        <member name="P:P1.CameraSdk.ImageDataChunk.DataOffset">
+            <summary>
+            The offset of the image data in this chunk, relative to the complete image
+            </summary>
+            <value>Data offset in bytes</value>
+        </member>
+        <member name="P:P1.CameraSdk.ImageDataChunk.RemainingBytes">
+            <summary>
+            Number of bytes remaining to be delivered in succeeding chunks
+            </summary>
+        </member>
+        <member name="T:P1.CameraSdk.NativeMemoryRef">
+            <summary>
+            A wrapper around a temporary reference to an block of unmanaged memory
+            </summary>
+            <remarks>
+            <para>This object references memory owned by the SDK subsystem, so you <em>must</em> <see cref="M:P1.CameraSdk.NativeMemoryRef.Dispose"/> it
+            as soon as you are done with it. Either manually call <see cref="M:P1.CameraSdk.NativeMemoryRef.Dispose"/> or use a <pre>using</pre> block
+            to ensure quick disposal of the referenced memory. (Do <em>not</em> rely on the garbage collector to eventually
+            free the object.</para>
+            <para>Since the lower layers of this Camera SDK are written in C/C++, images are returned to
+            CLR contexts as a reference to unmanaged memory. This allows you to avoid extranous copies
+            of the image data.</para>
+            <para>This class implements the <see cref="T:System.IO.Stream"/> abstract class, so you can easily stream
+            its content to a file or other destination stream.</para>
+            <para>The method <see cref="M:P1.CameraSdk.NativeMemoryRef.ToArray"/> copies the entire data buffer into a byte array (<pre>byte[]</pre>).
+            This effectively transfers (copies) the data from unmanaged memory into managed.</para>
+            </remarks>
+            <seealso cref="M:P1.CameraSdk.Camera.WaitForImage(System.UInt32)"/>
+            <seealso cref="M:P1.CameraSdk.Camera.WaitForLiveView(System.UInt32)"/>
+        </member>
+        <member name="T:P1.CameraSdk.IIQImageFile">
+            <summary>
+            An in-memory representation of a IIQ image file
+            </summary>
+        </member>
+        <member name="P:P1.CameraSdk.LiveViewImage.SourceCrop">
+            <summary>
+            The crop that this image has in the full image coordinate system, which might differ from what was requested
+            </summary>
+        </member>
+        <member name="P:P1.CameraSdk.LiveViewImage.RequestedCrop">
+            <summary>
+            The crop that was requested for this image, from the <see cref="P:P1.CameraSdk.LiveViewConfiguration.Crop"/> 
+            </summary>
+        </member>
+        <member name="P:P1.CameraSdk.LiveViewImage.FullImageSize">
+            <summary>
+            The dimensions of the full image, which this LiveView is part of
+            </summary>
+        </member>
+        <member name="P:P1.CameraSdk.LiveViewImage.HasRequestedCrop">
+            <summary>
+            True if the requested crop for this LiveView image, is the same as the actual provided one (<see cref="P:P1.CameraSdk.LiveViewImage.RequestedCrop"/> == <see cref="P:P1.CameraSdk.LiveViewImage.SourceCrop"/>)
+            </summary>
+        </member>
+    </members>
+</doc>
