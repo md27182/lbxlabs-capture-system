@@ -149,6 +149,7 @@ class CameraControlUI(QWidget):
         status_layout.setAlignment(Qt.AlignTop)
         status_layout.addWidget(self.pos_label)
         status_layout.addLayout(keyboard_control_layout)
+        status_layout.addStretch()  # Fill vertical space
         status_widget.setLayout(status_layout)
         left_tabs.addTab(status_widget, "Machine Status")
 
@@ -162,6 +163,7 @@ class CameraControlUI(QWidget):
         live_view_widget = QWidget()
         image_layout = QVBoxLayout()
         image_layout.addWidget(self.image_label)
+        image_layout.addStretch()  # Fill vertical space
         live_view_widget.setLayout(image_layout)
         center_tabs.addTab(live_view_widget, "Live View")
 
@@ -176,31 +178,41 @@ class CameraControlUI(QWidget):
         settings_widget = QWidget()
         machine_settings_layout = QVBoxLayout()
         machine_settings_layout.setAlignment(Qt.AlignTop)
+        machine_settings_layout.addStretch()  # Fill vertical space
         settings_widget.setLayout(machine_settings_layout)
         right_tabs.addTab(settings_widget, "Machine Settings")
 
         # Camera Settings tab
         camera_settings_widget = QWidget()
         camera_settings_layout = QVBoxLayout()
+        camera_settings_layout.setAlignment(Qt.AlignTop)
+        camera_settings_layout.addStretch()  # Fill vertical space
         camera_settings_widget.setLayout(camera_settings_layout)
         right_tabs.addTab(camera_settings_widget, "Camera Settings")
 
         # Execute Sequence tab
         sequence_widget = QWidget()
         sequence_layout = QVBoxLayout()
+        sequence_layout.setAlignment(Qt.AlignTop)
         sequence_layout.addWidget(self.sequence_dropdown)
+        sequence_layout.addStretch()  # Fill vertical space
         sequence_widget.setLayout(sequence_layout)
         right_tabs.addTab(sequence_widget, "Execute Sequence")
 
         right_layout = QVBoxLayout()
         right_layout.addWidget(right_tabs)
 
+        # Set size policies for proper expansion
+        left_tabs.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
+        center_tabs.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        right_tabs.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
+
         horizontal_layout = QHBoxLayout()
         horizontal_layout.setSpacing(20)
         horizontal_layout.setContentsMargins(20, 20, 20, 20)
-        horizontal_layout.addLayout(left_layout)
-        horizontal_layout.addLayout(center_layout)
-        horizontal_layout.addLayout(right_layout)
+        horizontal_layout.addLayout(left_layout, 0)    # No horizontal stretch
+        horizontal_layout.addLayout(center_layout, 1)  # Horizontal stretch
+        horizontal_layout.addLayout(right_layout, 0)   # No horizontal stretch
 
         # Container widget for main UI
         main_ui_widget = QWidget()
@@ -209,8 +221,15 @@ class CameraControlUI(QWidget):
         # Terminal-like window
         self.terminal_output = QTextEdit()
         self.terminal_output.setReadOnly(True)
-        self.terminal_output.setStyleSheet("background-color: #181818; color: #FFFFFF; font-family: 'Consolas'; font-size: 14px; border: 2px solid #444; border-radius: 6px;")
-        # Remove fixed height for better alignment
+        self.terminal_output.setFixedHeight(120)  # Approximately 6 lines
+        self.terminal_output.setStyleSheet("""
+            background-color: #181818; 
+            color: #FFFFFF; 
+            font-family: 'Consolas'; 
+            font-size: 14px; 
+            border: 2px solid #444; 
+            border-radius: 6px;
+        """)
 
         terminal_layout = QVBoxLayout()
         terminal_layout.setSpacing(2)
@@ -327,10 +346,6 @@ class CameraControlUI(QWidget):
 
 
 if __name__ == '__main__':
-    app = QApplication(sys.argv)
-    window = CameraControlUI()
-    window.show()
-    sys.exit(app.exec())
     app = QApplication(sys.argv)
     window = CameraControlUI()
     window.show()
