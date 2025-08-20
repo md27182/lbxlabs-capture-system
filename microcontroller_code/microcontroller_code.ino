@@ -74,6 +74,7 @@ bool needs_homing[3] = {1, 1, 1};
 
 void checkAndHandleLimitSwitch(LimitSwitch& ls) {
   if (digitalRead(ls.pin) && digitalRead(ls.pin) && digitalRead(ls.pin)) {
+    long hit_position = ls.motor->currentPosition();
     // Stop the motor immediately and set the position and speed to zero
     ls.motor->setCurrentPosition(0);
 
@@ -102,7 +103,9 @@ void checkAndHandleLimitSwitch(LimitSwitch& ls) {
     } else {
       needs_homing[ls.axis] = 1;
       Serial.print("L ");
-      Serial.println(ls.id);
+      Serial.print(ls.id);
+      Serial.print(" ");
+      Serial.println(hit_position);
     }
   }
 }
