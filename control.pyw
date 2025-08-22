@@ -32,7 +32,9 @@ from PyQt5.QtWidgets import (
     QTabWidget,
     QHBoxLayout,
     QGridLayout,
-    QTextEdit
+    QTextEdit, 
+    QStackedWidget,
+    QFileDialog
 )
 
 # Add Windows-specific imports for dark title bar
@@ -115,68 +117,51 @@ class ControlUI(QMainWindow):
 
     pos_line_edit_matched_style = """
         QLineEdit {
-            background-color: #2b2b2b;
-            color: #E0E0E0;
-            border: 1px solid #444;
-            border-radius: 4px;
-            padding: 4px 8px;
-            font-size: 12pt;
+            background-color: #3a3a3a;
         }"""
     pos_line_edit_unmatched_style = f"""
         QLineEdit {{
             background-color: {YELLOW_PROGRESS_COLOR};
-            color: #E0E0E0;
-            border: 1px solid #444;
-            border-radius: 4px;
-            padding: 4px 8px;
-            font-size: 12pt;
         }}"""
     
     standard_button_style = """
         QPushButton {
-            background-color: #2b2b2b;
-            color: #E0E0E0;
-            border: 1px solid #444;
-            border-radius: 4px;
+            background-color: #3a3a3a;
+            border: none;
+            border-radius: 8px;
             padding: 4px 8px;
             font-size: 9pt;
         }
         QPushButton:hover {
-            background-color: #333;
-            border: 1px solid #555;
+            background-color: #4a4a4a;
         }
         QPushButton:pressed {
-            background-color: #222;
-            border: 1px solid #333;
+            background-color: #2a2a2a;
         }
     """
     standard_button_style_long = """
         QPushButton {
-            background-color: #2b2b2b;
-            color: #E0E0E0;
-            border: 1px solid #444;
-            border-radius: 4px;
+            background-color: #3a3a3a;
+            border-radius: 8px;
             padding: 4px 8px;
-            font-size: 9pt;
+            font-size: 12pt;
+            font-weight: bold;
             margin: 10px;
         }
         QPushButton:hover {
-            background-color: #333;
-            border: 1px solid #555;
+            background-color: #4a4a4a;
         }
         QPushButton:pressed {
-            background-color: #222;
-            border: 1px solid #333;
+            background-color: #2a2a2a;
         }
     """
     standard_button_style_long_in_progress = f"""
         QPushButton {{
             background-color: {YELLOW_PROGRESS_COLOR};
-            color: #E0E0E0;
-            border: 1px solid #444;
-            border-radius: 4px;
+            border-radius: 8px;
             padding: 4px 8px;
-            font-size: 9pt;
+            font-size: 12pt;
+            font-weight: bold;
             margin: 10px;
         }}
     """
@@ -185,26 +170,22 @@ class ControlUI(QMainWindow):
         QCheckBox::indicator {
             width: 18px;
             height: 18px;
-            background-color: #2b2b2b;
-            border: 1px solid #444;
+            background-color: #3a3a3a;
+            border: none;
             border-radius: 3px;
         }
         QCheckBox::indicator:checked {
             background-color: #5ccd80;
-            border: 1px solid #5ccd80;
         }
         QCheckBox::indicator:checked:hover {
             background-color: #6cdd90;
-            border: 1px solid #6cdd90;
         }
         QCheckBox::indicator:hover {
-            background-color: #333;
-            border: 1px solid #555;
+            background-color: #4a4a4a;
         }
     """
     standard_label_font = """
-        font-size: 9pt; 
-        color: #E0E0E0;
+        /*font-size: 9pt; */
     """
 
     big_button_style_red = f"""
@@ -227,6 +208,13 @@ class ControlUI(QMainWindow):
                 border: 2px solid #CC5C5C;
             }}
     """
+
+    small_line_edit_style = """
+                QLineEdit {
+                    background-color: #3a3a3a;
+                    font-size: 10pt;
+                }
+            """
 
     def __init__(self):
         super().__init__()
@@ -293,7 +281,7 @@ class ControlUI(QMainWindow):
     def init_ui(self):
         ## Define UI sections
         self.machine_controls = QWidget()
-        self.capture_image_set = QWidget()
+        self.capture_sequence = QWidget()
         self.calibrate = QWidget()
         self.live_view = QWidget()
         self.last_image = QWidget()
@@ -304,21 +292,11 @@ class ControlUI(QMainWindow):
         # left_tabs.setFixedWidth(500)
         left_tabs.setStyleSheet("""
             QTabWidget::pane { 
-                border: 1px solid #444; 
-                border-radius: 6px;
+                background-color: #252525;
                 border-top-left-radius: 0px;
             }
-            QTabBar::tab {
-                background: #222;
-                color: #E0E0E0;
-                padding: 8px 12px;
-                border: 1px solid #444;
-                border-top-left-radius: 4px;
-                border-top-right-radius: 4px;
-            }
             QTabBar::tab:selected {
-                background: #333;
-                border-bottom: none;
+                background: #252525;
             }
         """)
         left_tabs.addTab(self.machine_controls, "Manual Controls")
@@ -333,8 +311,7 @@ class ControlUI(QMainWindow):
         right_tabs.setStyleSheet(left_tabs.styleSheet())
         right_tabs.setTabPosition(QTabWidget.North)
         right_tabs.setMinimumWidth(500)
-        right_tabs.addTab(self.capture_image_set, "Capture Image Set")
-        right_tabs.addTab(self.calibrate, "Calibrate")
+        right_tabs.addTab(self.capture_sequence, "Capture Sequence")
 
         top_row = QWidget()
         top_layout = QHBoxLayout()
@@ -351,8 +328,6 @@ class ControlUI(QMainWindow):
             color: #FFFFFF; 
             font-family: 'Consolas'; 
             font-size: 14px; 
-            border: 2px solid #444; 
-            border-radius: 6px;
             margin-right: 13px;
             margin-left: 13px;
         """)
@@ -365,9 +340,6 @@ class ControlUI(QMainWindow):
             color: #FFFFFF; 
             font-family: 'Consolas'; 
             font-size: 14px; 
-            border: 2px solid #444; 
-            border-radius: 6px;
-            padding: 4px 8px;
             margin-right: 13px;
             margin-left: 13px;
         """)
@@ -380,6 +352,8 @@ class ControlUI(QMainWindow):
         root_widget = QWidget()
         root_widget.setLayout(root_layout)
         self.setCentralWidget(root_widget)
+
+        tab_font = left_tabs.font()
 #region
 #region
 
@@ -394,7 +368,6 @@ class ControlUI(QMainWindow):
             axis_label = QLabel(axis_name + " ")
             axis_main_font_style = """
                 font-size: 12pt;
-                color: #E0E0E0;
             """
             axis_label.setStyleSheet(axis_main_font_style)
             geo_grid_layout.addWidget(axis_label, axis * 4, 0)
@@ -412,39 +385,23 @@ class ControlUI(QMainWindow):
             unit_label = QLabel(units)
             unit_label.setStyleSheet(axis_main_font_style)
             geo_grid_layout.addWidget(unit_label, axis * 4, 4)
-
-            # Styles for smaller controls
-            small_line_edit_style = """
-                QLineEdit {
-                    background-color: #2b2b2b;
-                    color: #E0E0E0;
-                    border: 1px solid #444;
-                    border-radius: 3px;
-                    padding: 2px 4px;
-                    font-size: 10pt;
-                }
-            """
             
             slider_style = """
                 QSlider::groove:horizontal {
-                    border: 1px solid #444;
                     height: 6px;
-                    background: #2b2b2b;
-                    border-radius: 3px;
+                    background: #3a3a3a;
                 }
                 QSlider::handle:horizontal {
                     background: #666;
-                    border: 1px solid #888;
                     width: 12px;
                     margin: -3px 0;
-                    border-radius: 6px;
                 }
                 QSlider::handle:horizontal:hover {
                     background: #777;
                 }
             """
 
-            axis_sub_font_style = "font-size: 9pt; color: #AAAAAA;"
+            axis_sub_font_style = "font-size: 9pt;"
 
             if axis < 3:
                 for j, rate_type in enumerate(["speed", "accel"]):
@@ -470,7 +427,7 @@ class ControlUI(QMainWindow):
                     rate_line_edit.setMaximumWidth(60)
                     rate_validator = QIntValidator(0, 999)
                     rate_line_edit.setValidator(rate_validator)
-                    rate_line_edit.setStyleSheet(small_line_edit_style)
+                    rate_line_edit.setStyleSheet(self.small_line_edit_style)
                     self.geo[axis][rate_type + '_line_edit'] = rate_line_edit
                     geo_grid_layout.addWidget(rate_line_edit, row, 3)
 
@@ -501,9 +458,9 @@ class ControlUI(QMainWindow):
         machine_controls_layout.addWidget(stop_button)
 
         # Keyboard controls
-        keyboard_controls_widget = QWidget()
-        machine_controls_layout.addWidget(keyboard_controls_widget)
-        keyboard_controls_layout = QHBoxLayout(keyboard_controls_widget)
+        self.keyboard_controls_widget = QWidget()
+        machine_controls_layout.addWidget(self.keyboard_controls_widget)
+        keyboard_controls_layout = QHBoxLayout(self.keyboard_controls_widget)
         keyboard_controls_layout.setContentsMargins(10, 5, 10, 5)
 
         keyboard_controls_label = QLabel("Enable keyboard controls")
@@ -516,16 +473,14 @@ class ControlUI(QMainWindow):
         help_button.setFixedSize(24, 24)
         help_button.setStyleSheet("""
             QPushButton {
-                background-color: #2b2b2b;
-                color: #E0E0E0;
-                border: 1px solid #444;
+                background-color: #3a3a3a;
+                border: none;
                 border-radius: 12px;
                 font-size: 7pt;
                 font-weight: bold;
             }
             QPushButton:hover {
-                background-color: #333;
-                border: 1px solid #555;
+                background-color: #4a4a4a;
             }
         """)
         help_button.setToolTip(
@@ -543,9 +498,8 @@ class ControlUI(QMainWindow):
         # Style the tooltip
         help_button.setStyleSheet(help_button.styleSheet() + """
             QToolTip {
-                background-color: #2b2b2b;
-                color: #E0E0E0;
-                border: 1px solid #444;
+                background-color: #3a3a3a;
+                border: none;
                 border-radius: 4px;
                 padding: 4px;
                 font-family: 'Consolas';
@@ -558,14 +512,15 @@ class ControlUI(QMainWindow):
         self.keyboard_controls_toggle.setStyleSheet(self.standard_checkbox_style)
         
         # Homing buttons
-        homing_widget = QWidget()
-        machine_controls_layout.addWidget(homing_widget)
-        homing_layout = QHBoxLayout(homing_widget)
-        homing_layout.setContentsMargins(10, 5, 10, 5) 
+        self.homing_widget = QWidget()
+        machine_controls_layout.addWidget(self.homing_widget)
+        homing_layout = QHBoxLayout(self.homing_widget)
+        homing_layout.setContentsMargins(10, 5, 10, 5)
 
-        homing_label = QLabel("Home axes")
-        homing_layout.addWidget(homing_label)
-        homing_label.setStyleSheet(self.standard_label_font)
+        self.homing_label = QLabel("Home axes")
+        homing_layout.addWidget(self.homing_label)
+        self.homing_label.setStyleSheet(self.standard_label_font)
+        self.homing_label.setFont(tab_font)
         homing_layout.addStretch()
 
         for axis, axis_name in enumerate(["θ", "φ", "h", "all"]):
@@ -574,9 +529,9 @@ class ControlUI(QMainWindow):
             button.clicked.connect(lambda checked, a=axis: self.home_axis(a))
             homing_layout.addWidget(button)
 
-        camera_connect_widget = QWidget()
-        machine_controls_layout.addWidget(camera_connect_widget)
-        camera_connect_layout = QHBoxLayout(camera_connect_widget)
+        self.camera_connect_widget = QWidget()
+        machine_controls_layout.addWidget(self.camera_connect_widget)
+        camera_connect_layout = QHBoxLayout(self.camera_connect_widget)
         camera_connect_layout.setContentsMargins(10, 5, 10, 5)
 
         camera_connect_label = QLabel("Connect to camera")
@@ -589,11 +544,11 @@ class ControlUI(QMainWindow):
         self.camera_connect_checkbox.clicked.connect(self.toggle_camera_connection)
 
         # Add capture button
-        capture_button = QPushButton("CAPTURE")
-        capture_button.setFixedHeight(70)
-        capture_button.setStyleSheet(self.standard_button_style_long)
-        # capture_button.clicked.connect(self.capture_image)
-        machine_controls_layout.addWidget(capture_button)
+        self.capture_button = QPushButton("CAPTURE")
+        self.capture_button.setFixedHeight(70)
+        self.capture_button.setStyleSheet(self.standard_button_style_long)
+        # self.capture_button.clicked.connect(self.capture_image)
+        machine_controls_layout.addWidget(self.capture_button)
 
         machine_controls_layout.addStretch()
 
@@ -601,43 +556,177 @@ class ControlUI(QMainWindow):
 #region
 #region
 
-        ### Populate "Capture Image Set" tab ###
-        capture_image_set_layout = QVBoxLayout()
-        capture_image_set_layout.addStretch()
-        self.capture_image_set.setLayout(capture_image_set_layout)
+        ### Populate "Capture Sequence" tab ###
+        capture_sequence_layout = QVBoxLayout(self.capture_sequence)
 
-#endregion
-#region
-#region
+        sequence_type_widget = QWidget()
+        capture_sequence_layout.addWidget(sequence_type_widget)
+        sequence_type_layout = QHBoxLayout(sequence_type_widget)
+        sequence_type_layout.setContentsMargins(10, 5, 10, 5)
 
-        ### Populate "Calibrate" tab ###
-        calibrate_layout = QVBoxLayout(self.calibrate)
+        sequence_type_label = QLabel("Sequence type")
+        sequence_type_layout.addWidget(sequence_type_label)
+        sequence_type_label.setStyleSheet(self.standard_label_font)
+
+        sequence_type_dropdown = QComboBox()
+        sequence_type_layout.addWidget(sequence_type_dropdown, stretch=1, alignment=Qt.AlignRight)
+        sequence_type_dropdown.setMinimumWidth(250)
+        sequence_type_dropdown.addItems(["Spin set", "Fibonacci sphere", "Calibration set"])
+        sequence_type_dropdown.setStyleSheet("""
+            QComboBox {
+                background-color: #3a3a3a;
+                font-size: 9pt;
+            }
+            QComboBox:hover {
+                background-color: #4a4a4a;
+            }
+            QComboBox::drop-down {
+                border: none;
+                width: 20px;
+            }
+            QComboBox::down-arrow {
+                image: none;
+                border-left: 5px solid transparent;
+                border-right: 5px solid transparent;
+                border-top: 5px solid #E0E0E0;
+                margin-right: 5px;
+            }
+            QComboBox QAbstractItemView {
+                background-color: #3a3a3a;
+                selection-background-color: #4a4a4a;
+            }
+        """)
+
+        capture_sequence_stack = QStackedWidget()
+        capture_sequence_layout.addWidget(capture_sequence_stack)
+
+        # Connect dropdown to stack after both are created
+        sequence_type_dropdown.currentIndexChanged.connect(capture_sequence_stack.setCurrentIndex)
+
+        ## Spin set controls ##
+        spin_set_widget = QWidget()
+        capture_sequence_stack.addWidget(spin_set_widget)
         
-        calibrate_intrinsics_options = QWidget()
-        calibrate_layout.addWidget(calibrate_intrinsics_options)
-        calibrate_intrinsics_options_layout = QHBoxLayout(calibrate_intrinsics_options)
-        calibrate_intrinsics_options_layout.setContentsMargins(10, 10, 10, 5)
+        spin_set_layout = QVBoxLayout(spin_set_widget)
+        spin_set_layout.setContentsMargins(0, 0, 0, 0)
+        
+        spin_set_positions_options = QWidget()
+        spin_set_layout.addWidget(spin_set_positions_options)
+        spin_set_positions_layout = QHBoxLayout(spin_set_positions_options)
 
-        calibrate_intrinsics_label = QLabel("Calibrate camera intrinsics")
-        calibrate_intrinsics_label.setStyleSheet(self.standard_label_font)
-        calibrate_intrinsics_checkbox = QCheckBox()
-        calibrate_intrinsics_checkbox.setStyleSheet(self.standard_checkbox_style)
-        calibrate_intrinsics_checkbox.setChecked(True)
-        calibrate_intrinsics_options_layout.addWidget(calibrate_intrinsics_label)
-        calibrate_intrinsics_options_layout.addWidget(calibrate_intrinsics_checkbox, 1, Qt.AlignRight)
+        spin_set_positions_label = QLabel("Read capture positions from file")
+        spin_set_positions_label.setStyleSheet(self.standard_label_font)
+        spin_set_positions_checkbox = QCheckBox()
+        spin_set_positions_checkbox.setStyleSheet(self.standard_checkbox_style)
+        spin_set_positions_layout.addWidget(spin_set_positions_label)
+        spin_set_positions_layout.addWidget(spin_set_positions_checkbox, 1, Qt.AlignRight)
+        spin_set_positions_layout.setContentsMargins(10, 5, 10, 5)
+        
+        # File selector widget (initially hidden)
+        self.spin_set_file_selector = QWidget()
+        spin_set_layout.addWidget(self.spin_set_file_selector)
+        file_selector_layout = QHBoxLayout(self.spin_set_file_selector)
+        file_selector_layout.setContentsMargins(10, 5, 10, 5)
 
-        calibrate_machine_options = QWidget()
-        calibrate_layout.addWidget(calibrate_machine_options)
-        calibrate_machine_options_layout = QHBoxLayout(calibrate_machine_options)
-        calibrate_machine_options_layout.setContentsMargins(10, 5, 10, 5)
+        file_path_line_edit = QLineEdit()
+        file_path_line_edit.setPlaceholderText("Select position file...")
+        file_path_line_edit.setReadOnly(True)
+        file_path_line_edit.setStyleSheet("""
+            QLineEdit {
+                background-color: #3a3a3a;
+                font-size: 9pt;
+            }
+        """)
+        file_selector_layout.addWidget(file_path_line_edit)
+        
+        browse_button = QPushButton("Browse")
+        browse_button.setStyleSheet(self.standard_button_style)
+        browse_button.clicked.connect(lambda: self.browse_position_file(file_path_line_edit))
+        file_selector_layout.addWidget(browse_button)
+        
+        # Initially hide the file selector
+        self.spin_set_file_selector.setVisible(False)
+        
+        # Connect checkbox to show/hide file selector
+        spin_set_positions_checkbox.toggled.connect(self.spin_set_file_selector.setVisible)
+        
+        # Number of rows widget
+        spin_set_rows_widget = QWidget()
+        spin_set_layout.addWidget(spin_set_rows_widget)
+        spin_set_rows_layout = QHBoxLayout(spin_set_rows_widget)
+        spin_set_rows_layout.setContentsMargins(10, 5, 10, 5)
+        
+        rows_label = QLabel("Number of rows")
+        rows_label.setStyleSheet(self.standard_label_font)
+        spin_set_rows_layout.addWidget(rows_label)
+        
+        rows_line_edit = QLineEdit()
+        rows_line_edit.setText("4")
+        rows_line_edit.setStyleSheet("""
+            QLineEdit {
+                font-size: 9pt;
+                background-color: #3a3a3a;
+            }
+        """)
+        spin_set_rows_layout.addWidget(rows_line_edit, stretch=1, alignment=Qt.AlignRight)
 
-        calibrate_machine_label = QLabel("Calibrate machine positions")
-        calibrate_machine_label.setStyleSheet(self.standard_label_font)
-        calibrate_machine_checkbox = QCheckBox()
-        calibrate_machine_checkbox.setStyleSheet(self.standard_checkbox_style)
-        calibrate_machine_checkbox.setChecked(True)
-        calibrate_machine_options_layout.addWidget(calibrate_machine_label)
-        calibrate_machine_options_layout.addWidget(calibrate_machine_checkbox, 1, Qt.AlignRight)
+        # Number of cols widget
+        spin_set_cols_widget = QWidget()
+        spin_set_layout.addWidget(spin_set_cols_widget)
+        spin_set_cols_layout = QHBoxLayout(spin_set_cols_widget)
+        spin_set_cols_layout.setContentsMargins(10, 5, 10, 5)
+
+        cols_label = QLabel("Number of cols")
+        cols_label.setStyleSheet(self.standard_label_font)
+        spin_set_cols_layout.addWidget(cols_label)
+
+        cols_line_edit = QLineEdit()
+        cols_line_edit.setText("12")
+        cols_line_edit.setStyleSheet("""
+            QLineEdit {
+                font-size: 9pt;
+                background-color: #3a3a3a;
+            }
+        """)
+        spin_set_rows_layout.addWidget(rows_line_edit, stretch=1, alignment=Qt.AlignRight)
+        
+        spin_set_layout.addStretch()
+
+        ## Fibonacci sphere controls ##
+        fibonacci_widget = QWidget()
+        capture_sequence_stack.addWidget(fibonacci_widget)
+
+        ## Calibration set controls ##
+        calibrate_widget = QWidget()
+        capture_sequence_stack.addWidget(calibrate_widget)
+
+        calibrate_layout = QVBoxLayout(calibrate_widget)
+
+        # calibrate_intrinsics_options = QWidget()
+        # calibrate_layout.addWidget(calibrate_intrinsics_options)
+        # calibrate_intrinsics_options_layout = QHBoxLayout(calibrate_intrinsics_options)
+        ## calibrate_intrinsics_options_layout.setContentsMargins(10, 10, 10, 5)
+
+        # calibrate_intrinsics_label = QLabel("Calibrate camera intrinsics")
+        # calibrate_intrinsics_label.setStyleSheet(self.standard_label_font)
+        # calibrate_intrinsics_checkbox = QCheckBox()
+        # calibrate_intrinsics_checkbox.setStyleSheet(self.standard_checkbox_style)
+        # calibrate_intrinsics_checkbox.setChecked(True)
+        # calibrate_intrinsics_options_layout.addWidget(calibrate_intrinsics_label)
+        # calibrate_intrinsics_options_layout.addWidget(calibrate_intrinsics_checkbox, 1, Qt.AlignRight)
+
+        # calibrate_machine_options = QWidget()
+        # calibrate_layout.addWidget(calibrate_machine_options)
+        # calibrate_machine_options_layout = QHBoxLayout(calibrate_machine_options)
+        ## calibrate_machine_options_layout.setContentsMargins(10, 5, 10, 5)
+
+        # calibrate_machine_label = QLabel("Calibrate machine positions")
+        # calibrate_machine_label.setStyleSheet(self.standard_label_font)
+        # calibrate_machine_checkbox = QCheckBox()
+        # calibrate_machine_checkbox.setStyleSheet(self.standard_checkbox_style)
+        # calibrate_machine_checkbox.setChecked(True)
+        # calibrate_machine_options_layout.addWidget(calibrate_machine_label)
+        # calibrate_machine_options_layout.addWidget(calibrate_machine_checkbox, 1, Qt.AlignRight)
 
         # Create container for calibrate button and cancel button
         calibrate_button_container = QWidget()
@@ -645,10 +734,10 @@ class ControlUI(QMainWindow):
         calibrate_button_layout = QHBoxLayout(calibrate_button_container)
         calibrate_button_layout.setContentsMargins(0, 0, 0, 0)
 
-        self.calibrate_button = QPushButton("CAPTURE CALIBRATION IMAGES")
+        self.calibrate_button = QPushButton("START")
         self.calibrate_button.setFixedHeight(70)
         self.calibrate_button.setStyleSheet(self.standard_button_style_long)
-        self.calibrate_button.clicked.connect(lambda: self.calibration_capture(calibrate_intrinsics_checkbox.isChecked(), calibrate_machine_checkbox.isChecked()))
+        self.calibrate_button.clicked.connect(self.calibration_capture)
         calibrate_button_layout.addWidget(self.calibrate_button)
 
         # Create cancel button (initially hidden)
@@ -660,6 +749,8 @@ class ControlUI(QMainWindow):
         self.calibrate_cancel_button.clicked.connect(self.cancel_calibration_capture)
 
         calibrate_layout.addStretch()
+
+
 
 #endregion
 
@@ -690,6 +781,27 @@ class ControlUI(QMainWindow):
         loop.exec_()
         self.user_txt_input.disconnect(on_text_entered)
         return text_entered
+    
+    def disable_manual_controls(self):
+        self.geo.setEnabled(False)
+        self.keyboard_controls_toggle.setChecked(False)
+        self.keyboard_controls_widget.setEnabled(False)
+        self.homing_widget.setEnabled(False)
+        self.camera_connect_widget.setEnabled(False)
+        self.capture_button.setEnabled(False)
+
+    def enable_manual_controls(self):
+        self.geo.setEnabled(True)
+        self.keyboard_controls_widget.setEnabled(True)
+        self.homing_widget.setEnabled(True)
+        self.camera_connect_widget.setEnabled(True)
+        self.capture_button.setEnabled(True)
+
+    def cancel_sequence(self):
+        self.user_txt_input.emit("abort")
+        #TODO stop waiting for motor commands
+        self.stop_all_motors()
+        self.enable_manual_controls()
 
     def update_position_colors(self):
         for axis in range(3):
@@ -977,13 +1089,15 @@ class ControlUI(QMainWindow):
     def stop_motor(self, axis):
         self.send_command("E" + str(axis))
 
-    ### CALIBRATION RELATED FUNCTIONS ###
+    ### CAPTURE SEQUENCE RELATED FUNCTIONS ###
 
-    def calibration_capture(self, bool_calibrate_intrinsics, bool_calibrate_machine):
-        self.calibrate_button.setText("CAPTURING CALIBRATION IMAGES")
+    def calibration_capture(self):
+        self.calibrate_button.setText("IN PROGRESS")
         self.calibrate_button.setStyleSheet(self.standard_button_style_long_in_progress)
         self.calibrate_button.setEnabled(False)
         self.calibrate_cancel_button.setVisible(True)
+
+        self.machine_controls.setEnabled(False)
 
         # TODO add positioning code back in once we have positions
         # self.output_to_terminal("Moving to calibration position...")
@@ -994,15 +1108,36 @@ class ControlUI(QMainWindow):
         "view to position it near the middle of the right edge of the camera's field of view. " \
         "The entire target should be in frame. Press ENTER to continue.")
 
-        self.wait_for_user_txt_input()  # Wait for user to press ENTER
+        output = self.wait_for_user_txt_input()  # Wait for user to press ENTER
+        if output == "abort":
+            return
         self.output_to_terminal("Starting calibration capture sequence...")
 
+        # TODO move back to top position
+        # TODO capture image
+
+
+
+        self.machine_controls.setEnabled(True)
+
     def cancel_calibration_capture(self):
-        self.calibrate_button.setText("CAPTURE CALIBRATION IMAGES")
+        self.calibrate_button.setText("START")
         self.calibrate_button.setStyleSheet(self.standard_button_style_long)
         self.calibrate_cancel_button.setVisible(False)
         self.calibrate_button.setEnabled(True)
         self.output_to_terminal("Calibration capture cancelled")
+        self.cancel_sequence()
+
+    def browse_position_file(self, line_edit):
+        """Open file dialog to select position file"""
+        file_path, _ = QFileDialog.getOpenFileName(
+            self,
+            "Select Positions File",
+            "",
+            "CSV Files (*.csv);;Text Files (*.txt);;All Files (*)"
+        )
+        if file_path:
+            line_edit.setText(file_path)
 
     # def capture_image(self):
     #     """Capture image using camera"""
@@ -1022,6 +1157,101 @@ class ControlUI(QMainWindow):
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
+    app.setStyleSheet("""
+        QWidget { 
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Helvetica Neue', sans-serif; 
+            color: #E0E0E0;
+            font-size: 9pt;
+            border: none;
+        }
+        
+        /* Base styles */
+        QLineEdit {
+            border-radius: 4px;
+            padding: 4px 8px;
+            font-size: 12pt;
+        }
+        
+        QPushButton {
+            background-color: #3a3a3a;
+            border-radius: 4px;
+            padding: 4px 8px;
+            font-size: 9pt;
+        }
+        QPushButton:hover {
+            background-color: #4a4a4a;
+        }
+        QPushButton:pressed {
+            background-color: #2a2a2a;
+        }
+        
+        QCheckBox::indicator {
+            width: 18px;
+            height: 18px;
+            background-color: #3a3a3a;
+            border-radius: 6px;
+        }
+        QCheckBox::indicator:checked {
+            background-color: #5ccd80;
+        }
+        QCheckBox::indicator:checked:hover {
+            background-color: #6cdd90;
+        }
+        QCheckBox::indicator:hover {
+            background-color: #4a4a4a;
+        }
+        
+        QTabWidget::pane { 
+            background-color: #252525;
+            border-radius: 6px;
+        }
+        QTabBar::tab {
+            background: #1a1a1a;
+            padding: 8px 12px;
+            border-top-left-radius: 6px;
+            border-top-right-radius: 6px;
+            font-size: 9pt;
+        }
+        
+        QComboBox {
+            border-radius: 6px;
+            padding: 4px 8px;
+        }
+        QComboBox::drop-down {
+            border: none;
+            width: 20px;
+        }
+        QComboBox::down-arrow {
+            image: none;
+            border-left: 5px solid transparent;
+            border-right: 5px solid transparent;
+            border-top: 5px solid #E0E0E0;
+            margin-right: 5px;
+        }
+        QComboBox QAbstractItemView {
+            background-color: #3a3a3a;
+            selection-background-color: #4a4a4a;
+        }
+        
+        QSlider::groove:horizontal {
+            border-radius: 3px;
+        }
+        QSlider::handle:horizontal {
+            border-radius: 6px;
+        }
+        
+        QToolTip {
+            background-color: #3a3a3a;
+            border-radius: 6px;
+            padding: 4px;
+            font-family: 'Consolas';
+            font-size: 9pt;
+        }
+        
+        QTextEdit { 
+            border-radius: 6px;
+        }
+    """)
     window = ControlUI()
     window.show()
     app.exec()
