@@ -1,0 +1,10 @@
+# Enter row positions below in the format "φ, h"
+rows
+0, 10
+10, 10
+20, 10
+50, 10
+80, 10
+# Enter column positions below (optional) in the format "θ"
+# If you do not want to include column positions, delete everything below this comment
+

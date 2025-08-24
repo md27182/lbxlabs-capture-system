@@ -3,8 +3,9 @@ import time
 import sys
 import os
 import glob
-import keyboard
+import csv
 import multiprocessing as mp
+import numpy as np
 
 from PyQt5.QtCore import QSize, Qt, QTimer, QEventLoop, pyqtSignal
 from PyQt5.QtGui import QPalette, QColor, QFont, QIntValidator, QKeyEvent
@@ -34,8 +35,12 @@ from PyQt5.QtWidgets import (
     QGridLayout,
     QTextEdit, 
     QStackedWidget,
-    QFileDialog
+    QFileDialog,
+    QSizePolicy
 )
+
+from PIL import Image
+from PIL.ImageQt import ImageQt
 
 # Add Windows-specific imports for dark title bar
 import ctypes
@@ -216,6 +221,8 @@ class ControlUI(QMainWindow):
                 }
             """
 
+    default_capture_directory = os.path.dirname(os.getcwd()) + "/captures/default"
+
     def __init__(self):
         super().__init__()
 
@@ -228,9 +235,14 @@ class ControlUI(QMainWindow):
         self.microcontroller_connected = False
         self.actively_editing_position = [False, False, False, False]
         self.estop_pressed = False
+        self.cancel_sequence_flag = False
         self.calibration_in_progress = mp.Event()
         self.waiting_for_input = False
         self.last_command = None
+        self.spin_rows = []
+        self.spin_cols = []
+        self.capture_directory = self.default_capture_directory
+        self.camera = None
 
         self.setWindowTitle("lbxcontrol")
         self.setGeometry(400, 100, 1800, 900)
@@ -360,8 +372,8 @@ class ControlUI(QMainWindow):
         ### Populate "Machine Controls" tab ###
         machine_controls_layout = QVBoxLayout(self.machine_controls)
 
-        geo_grid = QWidget()
-        geo_grid_layout = QGridLayout(geo_grid)
+        self.geo_grid = QWidget()
+        geo_grid_layout = QGridLayout(self.geo_grid)
 
         self.geo = [{}, {}, {}, {}]
         for axis, axis_name in enumerate(["θ", "φ", "h", "f"]):
@@ -448,7 +460,7 @@ class ControlUI(QMainWindow):
 
         geo_grid_layout.setColumnStretch(5, 1)
 
-        machine_controls_layout.addWidget(geo_grid)
+        machine_controls_layout.addWidget(self.geo_grid)
         
         # Add stop button
         stop_button = QPushButton("STOP")
@@ -547,11 +559,16 @@ class ControlUI(QMainWindow):
         self.capture_button = QPushButton("CAPTURE")
         self.capture_button.setFixedHeight(70)
         self.capture_button.setStyleSheet(self.standard_button_style_long)
-        # self.capture_button.clicked.connect(self.capture_image)
+        self.capture_button.clicked.connect(lambda: self.capture_image(format="IIQ"))
         machine_controls_layout.addWidget(self.capture_button)
 
         machine_controls_layout.addStretch()
 
+#endregion
+#region
+#region
+        ### Populate "Latest Image Captured" tab ###
+        last_image_layout = QVBoxLayout(self.last_image)
 #endregion
 #region
 #region
@@ -597,58 +614,61 @@ class ControlUI(QMainWindow):
             }
         """)
 
-        capture_sequence_stack = QStackedWidget()
-        capture_sequence_layout.addWidget(capture_sequence_stack)
+        self.capture_sequence_stack = QStackedWidget()
+        capture_sequence_layout.addWidget(self.capture_sequence_stack)
+        self.capture_sequence_stack.currentChanged.connect(self.capture_sequence_stack_switch)
+        self.capture_sequence_stack.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Maximum)
 
         # Connect dropdown to stack after both are created
-        sequence_type_dropdown.currentIndexChanged.connect(capture_sequence_stack.setCurrentIndex)
+        sequence_type_dropdown.currentIndexChanged.connect(self.capture_sequence_stack.setCurrentIndex)
 
         ## Spin set controls ##
         spin_set_widget = QWidget()
-        capture_sequence_stack.addWidget(spin_set_widget)
+        self.capture_sequence_stack.addWidget(spin_set_widget)
         
         spin_set_layout = QVBoxLayout(spin_set_widget)
         spin_set_layout.setContentsMargins(0, 0, 0, 0)
         
-        spin_set_positions_options = QWidget()
-        spin_set_layout.addWidget(spin_set_positions_options)
-        spin_set_positions_layout = QHBoxLayout(spin_set_positions_options)
+        # Checkbox that enables reading from file
+        spin_set_file_options = QWidget()
+        spin_set_layout.addWidget(spin_set_file_options)
+        spin_set_file_options_layout = QHBoxLayout(spin_set_file_options)
 
-        spin_set_positions_label = QLabel("Read capture positions from file")
-        spin_set_positions_label.setStyleSheet(self.standard_label_font)
-        spin_set_positions_checkbox = QCheckBox()
-        spin_set_positions_checkbox.setStyleSheet(self.standard_checkbox_style)
-        spin_set_positions_layout.addWidget(spin_set_positions_label)
-        spin_set_positions_layout.addWidget(spin_set_positions_checkbox, 1, Qt.AlignRight)
-        spin_set_positions_layout.setContentsMargins(10, 5, 10, 5)
-        
+        spin_set_file_label = QLabel("Read capture positions from file")
+        spin_set_file_label.setStyleSheet(self.standard_label_font)
+        spin_set_file_options_checkbox = QCheckBox()
+        spin_set_file_options_checkbox.setStyleSheet(self.standard_checkbox_style)
+        spin_set_file_options_layout.addWidget(spin_set_file_label)
+        spin_set_file_options_layout.addWidget(spin_set_file_options_checkbox, 1, Qt.AlignRight)
+        spin_set_file_options_layout.setContentsMargins(10, 5, 10, 5)
+
         # File selector widget (initially hidden)
         self.spin_set_file_selector = QWidget()
         spin_set_layout.addWidget(self.spin_set_file_selector)
         file_selector_layout = QHBoxLayout(self.spin_set_file_selector)
         file_selector_layout.setContentsMargins(10, 5, 10, 5)
 
-        file_path_line_edit = QLineEdit()
-        file_path_line_edit.setPlaceholderText("Select position file...")
-        file_path_line_edit.setReadOnly(True)
-        file_path_line_edit.setStyleSheet("""
+        self.file_path_line_edit = QLineEdit()
+        self.file_path_line_edit.setPlaceholderText("Select positions file...")
+        self.file_path_line_edit.setReadOnly(True)
+        self.file_path_line_edit.setStyleSheet("""
             QLineEdit {
                 background-color: #3a3a3a;
                 font-size: 9pt;
             }
         """)
-        file_selector_layout.addWidget(file_path_line_edit)
+        file_selector_layout.addWidget(self.file_path_line_edit)
         
         browse_button = QPushButton("Browse")
         browse_button.setStyleSheet(self.standard_button_style)
-        browse_button.clicked.connect(lambda: self.browse_position_file(file_path_line_edit))
+        browse_button.clicked.connect(lambda: self.browse_positions_file(self.file_path_line_edit))
         file_selector_layout.addWidget(browse_button)
         
         # Initially hide the file selector
         self.spin_set_file_selector.setVisible(False)
         
         # Connect checkbox to show/hide file selector
-        spin_set_positions_checkbox.toggled.connect(self.spin_set_file_selector.setVisible)
+        spin_set_file_options_checkbox.toggled.connect(self.use_positions_file_mode)
         
         # Number of rows widget
         spin_set_rows_widget = QWidget()
@@ -660,15 +680,21 @@ class ControlUI(QMainWindow):
         rows_label.setStyleSheet(self.standard_label_font)
         spin_set_rows_layout.addWidget(rows_label)
         
-        rows_line_edit = QLineEdit()
-        rows_line_edit.setText("4")
-        rows_line_edit.setStyleSheet("""
+        self.rows_line_edit = QLineEdit()
+        self.rows_line_edit.setText("4")
+        self.rows_line_edit.setStyleSheet("""
             QLineEdit {
                 font-size: 9pt;
                 background-color: #3a3a3a;
             }
         """)
-        spin_set_rows_layout.addWidget(rows_line_edit, stretch=1, alignment=Qt.AlignRight)
+        spin_set_rows_layout.addStretch()
+        spin_set_rows_layout.addWidget(self.rows_line_edit)
+
+        self.rows_value_label = QLabel()
+        self.rows_value_label.setStyleSheet(self.standard_label_font)
+        self.rows_value_label.setVisible(False)
+        spin_set_rows_layout.addWidget(self.rows_value_label)
 
         # Number of cols widget
         spin_set_cols_widget = QWidget()
@@ -680,64 +706,107 @@ class ControlUI(QMainWindow):
         cols_label.setStyleSheet(self.standard_label_font)
         spin_set_cols_layout.addWidget(cols_label)
 
-        cols_line_edit = QLineEdit()
-        cols_line_edit.setText("12")
-        cols_line_edit.setStyleSheet("""
+        self.cols_line_edit = QLineEdit()
+        self.cols_line_edit.setText("16")
+        self.cols_line_edit.setStyleSheet("""
             QLineEdit {
                 font-size: 9pt;
                 background-color: #3a3a3a;
             }
         """)
-        spin_set_rows_layout.addWidget(rows_line_edit, stretch=1, alignment=Qt.AlignRight)
-        
-        spin_set_layout.addStretch()
+        spin_set_cols_layout.addStretch()
+        spin_set_cols_layout.addWidget(self.cols_line_edit)
+
+        self.cols_value_label = QLabel()
+        self.cols_value_label.setStyleSheet(self.standard_label_font)
+        self.cols_value_label.setVisible(False)
+        spin_set_cols_layout.addWidget(self.cols_value_label)
+
+        # Multiple focuses per position widget
+        spin_set_focus_widget = QWidget()
+        spin_set_layout.addWidget(spin_set_focus_widget)
+        spin_set_focus_layout = QHBoxLayout(spin_set_focus_widget)
+        spin_set_focus_layout.setContentsMargins(10, 5, 10, 5)
+
+        focus_label = QLabel("Multiple focuses per position")
+        focus_label.setStyleSheet(self.standard_label_font)
+        spin_set_focus_layout.addWidget(focus_label)
+
+        self.focus_checkbox = QCheckBox()
+        self.focus_checkbox.setStyleSheet(self.standard_checkbox_style)
+        spin_set_focus_layout.addWidget(self.focus_checkbox, 1, Qt.AlignRight)
+
+        # Distance between focuses widget
+        focus_distance_widget = QWidget()
+        spin_set_layout.addWidget(focus_distance_widget)
+        focus_distance_layout = QHBoxLayout(focus_distance_widget)
+        focus_distance_layout.setContentsMargins(10, 5, 10, 5)
+
+        focus_distance_label = QLabel("Dist. between focuses")
+        focus_distance_label.setStyleSheet(self.standard_label_font)
+        focus_distance_layout.addWidget(focus_distance_label)
+
+        self.focus_distance_line_edit = QLineEdit()
+        self.focus_distance_line_edit.setText("2.0")
+        self.focus_distance_line_edit.setStyleSheet("""
+            QLineEdit {
+                font-size: 9pt;
+                background-color: #3a3a3a;
+            }
+        """)
+        focus_distance_layout.addStretch()
+        focus_distance_layout.addWidget(self.focus_distance_line_edit)
+
+        focus_distance_units = QLabel("(mm)")
+        focus_distance_units.setStyleSheet(self.standard_label_font)
+        focus_distance_layout.addWidget(focus_distance_units)
+
+        # Maximum diameter widget
+        max_diameter_widget = QWidget()
+        spin_set_layout.addWidget(max_diameter_widget)
+        max_diameter_layout = QHBoxLayout(max_diameter_widget)
+        max_diameter_layout.setContentsMargins(10, 5, 10, 5)
+
+        max_diameter_label = QLabel("Max diameter of subject")
+        max_diameter_label.setStyleSheet(self.standard_label_font)
+        max_diameter_layout.addWidget(max_diameter_label)
+
+        self.max_diameter_line_edit = QLineEdit()
+        self.max_diameter_line_edit.setText("100.0")
+        self.max_diameter_line_edit.setStyleSheet("""
+            QLineEdit {
+                font-size: 9pt;
+                background-color: #3a3a3a;
+            }
+        """)
+        max_diameter_layout.addStretch()
+        max_diameter_layout.addWidget(self.max_diameter_line_edit)
+
+        max_diameter_units = QLabel("(mm)")
+        max_diameter_units.setStyleSheet(self.standard_label_font)
+        max_diameter_layout.addWidget(max_diameter_units)
 
         ## Fibonacci sphere controls ##
         fibonacci_widget = QWidget()
-        capture_sequence_stack.addWidget(fibonacci_widget)
+        self.capture_sequence_stack.addWidget(fibonacci_widget)
+        self.capture_sequence_stack.adjustSize()
 
         ## Calibration set controls ##
         calibrate_widget = QWidget()
-        capture_sequence_stack.addWidget(calibrate_widget)
+        self.capture_sequence_stack.addWidget(calibrate_widget)
 
-        calibrate_layout = QVBoxLayout(calibrate_widget)
+        # calibrate_layout = QVBoxLayout(calibrate_widget)
 
-        # calibrate_intrinsics_options = QWidget()
-        # calibrate_layout.addWidget(calibrate_intrinsics_options)
-        # calibrate_intrinsics_options_layout = QHBoxLayout(calibrate_intrinsics_options)
-        ## calibrate_intrinsics_options_layout.setContentsMargins(10, 10, 10, 5)
-
-        # calibrate_intrinsics_label = QLabel("Calibrate camera intrinsics")
-        # calibrate_intrinsics_label.setStyleSheet(self.standard_label_font)
-        # calibrate_intrinsics_checkbox = QCheckBox()
-        # calibrate_intrinsics_checkbox.setStyleSheet(self.standard_checkbox_style)
-        # calibrate_intrinsics_checkbox.setChecked(True)
-        # calibrate_intrinsics_options_layout.addWidget(calibrate_intrinsics_label)
-        # calibrate_intrinsics_options_layout.addWidget(calibrate_intrinsics_checkbox, 1, Qt.AlignRight)
-
-        # calibrate_machine_options = QWidget()
-        # calibrate_layout.addWidget(calibrate_machine_options)
-        # calibrate_machine_options_layout = QHBoxLayout(calibrate_machine_options)
-        ## calibrate_machine_options_layout.setContentsMargins(10, 5, 10, 5)
-
-        # calibrate_machine_label = QLabel("Calibrate machine positions")
-        # calibrate_machine_label.setStyleSheet(self.standard_label_font)
-        # calibrate_machine_checkbox = QCheckBox()
-        # calibrate_machine_checkbox.setStyleSheet(self.standard_checkbox_style)
-        # calibrate_machine_checkbox.setChecked(True)
-        # calibrate_machine_options_layout.addWidget(calibrate_machine_label)
-        # calibrate_machine_options_layout.addWidget(calibrate_machine_checkbox, 1, Qt.AlignRight)
-
-        # Create container for calibrate button and cancel button
+        # Button for starting sequence
         calibrate_button_container = QWidget()
-        calibrate_layout.addWidget(calibrate_button_container)
+        capture_sequence_layout.addWidget(calibrate_button_container)
         calibrate_button_layout = QHBoxLayout(calibrate_button_container)
         calibrate_button_layout.setContentsMargins(0, 0, 0, 0)
 
         self.calibrate_button = QPushButton("START")
         self.calibrate_button.setFixedHeight(70)
         self.calibrate_button.setStyleSheet(self.standard_button_style_long)
-        self.calibrate_button.clicked.connect(self.calibration_capture)
+        self.calibrate_button.clicked.connect(self.start_sequence)
         calibrate_button_layout.addWidget(self.calibrate_button)
 
         # Create cancel button (initially hidden)
@@ -746,9 +815,9 @@ class ControlUI(QMainWindow):
         self.calibrate_cancel_button.setFixedSize(70, 70)
         self.calibrate_cancel_button.setStyleSheet(self.standard_button_style_long)
         self.calibrate_cancel_button.setVisible(False)
-        self.calibrate_cancel_button.clicked.connect(self.cancel_calibration_capture)
+        self.calibrate_cancel_button.clicked.connect(self.cancel_sequence)
 
-        calibrate_layout.addStretch()
+        capture_sequence_layout.addStretch()
 
 
 
@@ -782,8 +851,18 @@ class ControlUI(QMainWindow):
         self.user_txt_input.disconnect(on_text_entered)
         return text_entered
     
+    def wait_for_all_motors_stopped(self):
+        loop = QEventLoop()
+
+        def on_all_motors_stopped():
+            loop.quit()
+
+        self.all_motors_stopped.connect(on_all_motors_stopped)
+        loop.exec_()
+        self.all_motors_stopped.disconnect(on_all_motors_stopped)
+
     def disable_manual_controls(self):
-        self.geo.setEnabled(False)
+        self.geo_grid.setEnabled(False)
         self.keyboard_controls_toggle.setChecked(False)
         self.keyboard_controls_widget.setEnabled(False)
         self.homing_widget.setEnabled(False)
@@ -791,17 +870,47 @@ class ControlUI(QMainWindow):
         self.capture_button.setEnabled(False)
 
     def enable_manual_controls(self):
-        self.geo.setEnabled(True)
+        self.geo_grid.setEnabled(True)
         self.keyboard_controls_widget.setEnabled(True)
         self.homing_widget.setEnabled(True)
         self.camera_connect_widget.setEnabled(True)
         self.capture_button.setEnabled(True)
 
-    def cancel_sequence(self):
-        self.user_txt_input.emit("abort")
-        #TODO stop waiting for motor commands
-        self.stop_all_motors()
+    def start_sequence(self):
+        self.calibrate_button.setText("IN PROGRESS")
+        self.calibrate_button.setStyleSheet(self.standard_button_style_long_in_progress)
+        self.calibrate_button.setEnabled(False)
+        self.calibrate_cancel_button.setVisible(True)
+        self.machine_controls.setEnabled(False)
+
+        match self.capture_sequence_stack.currentIndex():
+            case 0:
+                self.capture_spin_set()
+            case 1:
+                self.capture_fibonacci_sequence()
+            case 2:
+                self.calibration_capture()
+
+    def end_sequence(self):
         self.enable_manual_controls()
+        self.calibrate_button.setText("START")
+        self.calibrate_button.setStyleSheet(self.standard_button_style_long)
+        self.calibrate_cancel_button.setVisible(False)
+        self.calibrate_button.setEnabled(True)
+
+    def cancel_sequence(self):
+        match self.capture_sequence_stack.currentIndex():
+            case 0:
+                self.output_to_terminal("Spin set capture cancelled")
+            case 1:
+                self.output_to_terminal("Fibonacci capture cancelled")
+            case 2:
+                self.output_to_terminal("Calibration capture cancelled")
+
+        self.user_txt_input.emit("abort")
+        self.cancel_sequence_flag = True
+        self.stop_all_motors()
+        self.end_sequence()
 
     def update_position_colors(self):
         for axis in range(3):
@@ -843,6 +952,82 @@ class ControlUI(QMainWindow):
         slider.setValue(value)
 
         self.new_rate_entered(axis, rate_type)
+
+    def capture_sequence_stack_switch(self, index):
+        for i in range(self.capture_sequence_stack.count()):
+            widget = self.capture_sequence_stack.widget(i)
+            widget.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Maximum if i == index else QSizePolicy.Ignored)
+        self.capture_sequence_stack.adjustSize()
+
+    def browse_positions_file(self, line_edit):
+        """Open file dialog to select position file"""
+        file_path, _ = QFileDialog.getOpenFileName(
+            self,
+            "Select Positions File",
+            os.path.dirname(os.getcwd()) + "/spin_positions",
+            "CSV Files (*.csv)"
+        )
+        if file_path:
+            self.file_path_line_edit.setText(file_path)
+            self.parseCSV(file_path)
+            print(self.spin_rows, self.spin_cols)
+
+    def use_positions_file_mode(self, checked):
+        if checked:
+            self.spin_set_file_selector.setVisible(True)
+            self.rows_line_edit.setVisible(False)
+            self.cols_line_edit.setVisible(False)
+            self.rows_value_label.setText("?")
+            self.cols_value_label.setText("?")
+            self.rows_value_label.setVisible(True)
+            self.cols_value_label.setVisible(True)
+        else:
+            self.spin_set_file_selector.setVisible(False)
+            self.file_path_line_edit.setText("")
+            self.rows_line_edit.setVisible(True)
+            self.cols_line_edit.setVisible(True)
+            self.rows_value_label.setVisible(False)
+            self.cols_value_label.setVisible(False)
+
+    def parseCSV(self, file_path):
+        with open(file_path, 'r') as f:
+            reader = csv.reader(f)
+            data = list(reader)
+            active_section = None
+            self.spin_rows = []
+            self.spin_cols = []
+            for line in data:
+                if line:
+                    if line[0].startswith("#"):
+                        continue
+                    elif line[0].startswith("rows"):
+                        active_section = "rows"
+                        continue
+                    elif line[0].startswith("cols"):
+                        active_section = "cols"
+                        continue
+                    if active_section == "rows":
+                        try:
+                            phi = float(line[0])
+                            h = float(line[1])
+                        except ValueError:
+                            self.output_to_terminal("CSV file is not formatted correctly")
+                            return
+                        self.spin_rows.append([phi, h])
+                    elif active_section == "cols":
+                        try:
+                            theta = float(line[0])
+                        except ValueError:
+                            self.output_to_terminal("CSV file is not formatted correctly")
+                            return
+                        self.spin_cols.append(theta)
+        
+        self.rows_value_label.setText(str(len(self.spin_rows)))
+        if self.spin_cols:
+            self.cols_value_label.setText(str(len(self.spin_cols)))
+        else:
+            self.cols_value_label.setVisible(False)
+            self.cols_line_edit.setVisible(True)
 
     def keyPressEvent(self, event):
         """Handle key press events"""
@@ -997,7 +1182,11 @@ class ControlUI(QMainWindow):
                             # if is_running's state changed to false, update position display
                             if self.motor_data[axis]["is_running"] is not None and self.motor_data[axis]["is_running"] != is_running and not is_running:
                                 self.update_positions[axis] = True
-                                self.all_motors_stopped.emit()
+
+                                # check is we need to emit all_motors_stopped
+                                other_axes = [i for i in range(3) if i != axis]
+                                if all(not self.motor_data[i]["is_running"] for i in other_axes):
+                                    self.all_motors_stopped.emit()
 
                             self.motor_data[axis]["is_running"] = is_running
                             self.motor_data[axis]["position"] = position
@@ -1090,15 +1279,47 @@ class ControlUI(QMainWindow):
         self.send_command("E" + str(axis))
 
     ### CAPTURE SEQUENCE RELATED FUNCTIONS ###
+    def move_capture_wait(self, theta, phi, h):
+        self.move_to_position(0, theta)
+        self.move_to_position(1, phi)
+        self.move_to_position(2, h)
+        self.wait_for_all_motors_stopped()
+        self.capture_image()
+
+    def capture_spin_set(self):
+        self.output_to_terminal("Starting spin set capture sequence...")
+        if self.rows_value_label.isVisible():
+            row_values = self.spin_rows
+        else:
+            num_rows = int(self.rows_line_edit.text())
+            phi_values = np.linspace(0, 90, num=num_rows, endpoint=False).tolist()
+            h = float(self.geo_grid[2]['pos_line_edit'].text())
+            row_values = [[phi, h] for phi in phi_values]
+        if self.cols_value_label.isVisible():
+            col_values = self.spin_cols
+        else:
+            num_cols = int(self.cols_line_edit.text())
+            col_values = np.linspace(0, 360, num=num_cols, endpoint=False).tolist()
+        
+        for r in row_values:
+            for c in col_values:
+                if self.cancel_sequence_flag:
+                    self.cancel_sequence_flag = False
+                    self.end_sequence()
+                    return
+                self.move_capture_wait(c, r[0], r[1])
+
+        self.output_to_terminal("Spin set capture sequence complete")
+        self.end_sequence()
+
+    def capture_fibonacci_sequence(self):
+        self.output_to_terminal("Starting Fibonacci capture sequence...")
+        # TODO: Implement Fibonacci capture logic
+        self.output_to_terminal("Fibonacci capture sequence complete")
+        self.end_sequence()
 
     def calibration_capture(self):
-        self.calibrate_button.setText("IN PROGRESS")
-        self.calibrate_button.setStyleSheet(self.standard_button_style_long_in_progress)
-        self.calibrate_button.setEnabled(False)
-        self.calibrate_cancel_button.setVisible(True)
-
-        self.machine_controls.setEnabled(False)
-
+        self.output_to_terminal("Starting calibration set capture sequence...")
         # TODO add positioning code back in once we have positions
         # self.output_to_terminal("Moving to calibration position...")
         # self.move_to_position(0, 0.0)  # Reset θ
@@ -1115,44 +1336,47 @@ class ControlUI(QMainWindow):
 
         # TODO move back to top position
         # TODO capture image
+        self.output_to_terminal("Calibration capture sequence complete")
+        self.end_sequence()
 
+    def capture_image(self, raw=True, format="IIQ"):
+        if self.camera is not None:
+            try:
+                self.camera.TriggerCapture()
+                iiq_file = self.camera.WaitForImage()
 
+                if not filename:
+                    filename = time.strftime("%Y%m%d_%H%M%S")
+                path = self.capture_directory + "/" + filename
 
-        self.machine_controls.setEnabled(True)
+                if format == "IIQ":
+                    path += ".IIQ"
+                    img = Image.frombytes('RGB', iiq_file.Data.Length, iiq_file.Data.ToArray())
+                    qtimg = ImageQt(img)
+                    pxmap = QPixmap.fromImage(qtimg)
+                    self.last_image.setPixmap(pxmap)
+                    #System.IO.File.WriteAllBytes(path, iiq_file.Data.ToArray())
+                else:
+                    raw_image = RawImage(iiq_file.Data.Pointer, iiq_file.Data.Length)
+                    convert_config = ConvertConfig()
+                    convert_config.SetOutputWidth(14204)
+                    bitmap = convert_config.ApplyTo(raw_image)
+                    if format == "TIFF":
+                        tiff_config = TiffConfig()
+                        tiff_config.tileSize = TiffTileSize.tileSize512
+                        path += ".tif"
+                        raw_image.WriteAsTiff(path, bitmap, tiff_config)
+                    elif format == "JPEG":
+                        jpeg_config = JpegConfig()
+                        jpeg_config.Quality = 90
+                        path += ".jpg"
+                        raw_image.WriteAsJpeg(path, bitmap, jpeg_config)
 
-    def cancel_calibration_capture(self):
-        self.calibrate_button.setText("START")
-        self.calibrate_button.setStyleSheet(self.standard_button_style_long)
-        self.calibrate_cancel_button.setVisible(False)
-        self.calibrate_button.setEnabled(True)
-        self.output_to_terminal("Calibration capture cancelled")
-        self.cancel_sequence()
-
-    def browse_position_file(self, line_edit):
-        """Open file dialog to select position file"""
-        file_path, _ = QFileDialog.getOpenFileName(
-            self,
-            "Select Positions File",
-            "",
-            "CSV Files (*.csv);;Text Files (*.txt);;All Files (*)"
-        )
-        if file_path:
-            line_edit.setText(file_path)
-
-    # def capture_image(self):
-    #     """Capture image using camera"""
-    #     if self.camera is not None:
-    #         try:
-    #             self.camera.TriggerCapture()
-    #             image_file = self.camera.WaitForImage()
-    #             timestamp = time.strftime("%Y%m%d_%H%M%S")
-    #             filename = f"capture_{timestamp}.iiq"
-    #             System.IO.File.WriteAllBytes(filename, image_file.Data.ToArray())
-    #             self.output_to_terminal(f"Image captured: {filename}")
-    #         except Exception as e:
-    #             self.output_to_terminal(f"Failed to capture image: {str(e)}")
-    #     else:
-    #         self.output_to_terminal("No camera connected")
+                self.output_to_terminal(f"Image captured: {path}")
+            except Exception as e:
+                self.output_to_terminal(f"Failed to capture image: {str(e)}")
+        else:
+            self.output_to_terminal("No camera connected")
 
 
 if __name__ == '__main__':
