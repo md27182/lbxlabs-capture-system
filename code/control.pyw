@@ -6,9 +6,10 @@ import glob
 import csv
 import multiprocessing as mp
 import numpy as np
+from pathlib import Path
 
-from PyQt5.QtCore import QSize, Qt, QTimer, QEventLoop, pyqtSignal
-from PyQt5.QtGui import QPalette, QColor, QFont, QIntValidator, QKeyEvent
+from PyQt5.QtCore import QObject, QSize, Qt, QTimer, QEventLoop, pyqtSignal, QCoreApplication, QThread, pyqtSlot
+from PyQt5.QtGui import QPalette, QColor, QFont, QIntValidator, QKeyEvent, QImage, QPixmap
 from PyQt5.QtWidgets import (
     QApplication,
     QCheckBox,
@@ -40,7 +41,7 @@ from PyQt5.QtWidgets import (
 )
 
 from PIL import Image
-from PIL.ImageQt import ImageQt
+
 
 # Add Windows-specific imports for dark title bar
 import ctypes
@@ -112,6 +113,39 @@ import System
 #         time.sleep(0.2)
 
 ###
+
+class LiveViewWorker(QObject):
+
+    live_view_frame_ready = pyqtSignal(QImage)
+
+    def __init__(self, camera):
+        super().__init__(None)
+        self.running = False
+        self.camera = camera
+
+    @pyqtSlot()
+    def start(self):
+        self.running = True
+        while self.running:
+            frame = self.camera.WaitForLiveView(1000)
+            data = frame.Data.ToArray()
+            image = QImage(bytes(data), frame.Width, frame.Height, QImage.Format_RGB888)
+            self.live_view_frame_ready.emit(image)
+    
+    @pyqtSlot()
+    def stop(self):
+        self.running = False
+
+
+class LiveViewViewer(QLabel):
+    def __init__(self, placeholder_text):
+        super().__init__(placeholder_text)
+    
+    @pyqtSlot(QImage)
+    def on_frame(self, image):
+        pixmap = QPixmap.fromImage(image)
+        self.setPixmap(pixmap)
+    
 
 class ControlUI(QMainWindow):
 
@@ -221,7 +255,7 @@ class ControlUI(QMainWindow):
                 }
             """
 
-    default_capture_directory = os.path.dirname(os.getcwd()) + "/captures/default"
+    default_capture_directory = os.path.dirname(os.getcwd()) + "\captures\default"
 
     def __init__(self):
         super().__init__()
@@ -243,6 +277,8 @@ class ControlUI(QMainWindow):
         self.spin_cols = []
         self.capture_directory = self.default_capture_directory
         self.camera = None
+        self.live_view_worker = None
+        self.live_view_thread = None
 
         self.setWindowTitle("lbxcontrol")
         self.setGeometry(400, 100, 1800, 900)
@@ -295,8 +331,8 @@ class ControlUI(QMainWindow):
         self.machine_controls = QWidget()
         self.capture_sequence = QWidget()
         self.calibrate = QWidget()
-        self.live_view = QWidget()
-        self.last_image = QWidget()
+        self.live_view = LiveViewViewer("Live View will appear here.")
+        self.last_image = QLabel("Last capture image will appear here.")
 
         ## Set overall layout of the UI sections
         left_tabs = QTabWidget()
@@ -318,6 +354,7 @@ class ControlUI(QMainWindow):
         center_tabs.setTabPosition(QTabWidget.North)
         center_tabs.addTab(self.last_image, "Latest Captured Image")
         center_tabs.addTab(self.live_view, "Live View")
+        center_tabs.currentChanged.connect(self.on_tab_changed)
 
         right_tabs = QTabWidget()
         right_tabs.setStyleSheet(left_tabs.styleSheet())
@@ -819,6 +856,46 @@ class ControlUI(QMainWindow):
 
         capture_sequence_layout.addStretch()
 
+        # On startup, the capture view is displayed first.
+        self.run_capture_view()
+
+
+    def on_tab_changed(self, index):
+
+        # Live View
+        if index == 1:
+            self.run_live_view()
+        elif index == 0:
+            self.run_capture_view()
+
+    def run_live_view(self):
+        self.camera.SetLiveViewEnable(True)
+        thread = QThread()
+        worker = LiveViewWorker(self.camera)
+        worker.moveToThread(thread)
+        thread.started.connect(worker.start)
+        worker.live_view_frame_ready.connect(self.live_view.on_frame)
+        self.live_view_worker = worker
+        self.live_view_thread = thread
+        thread.start()
+
+
+    def run_capture_view(self):
+
+        # Shut down live view processes, in case they are running
+        if self.live_view_worker:
+            self.live_view_worker.stop()
+            self.live_view_thread.quit()
+            self.live_view_thread.wait()
+            self.live_view_worker = None
+            self.live_view_thread = None
+
+        folder = Path(self.capture_directory)
+        image_exts = {".iiq"}
+        files = [f for f in folder.iterdir() if f.suffix.lower() in image_exts and f.is_file()]
+        if files:
+            newest = max(files, key=lambda f: f.stat().st_ctime)
+            self.display_image(newest)
 
 
 #endregion
@@ -1343,41 +1420,46 @@ class ControlUI(QMainWindow):
         if self.camera is not None:
             try:
                 self.camera.TriggerCapture()
-                iiq_file = self.camera.WaitForImage()
-
-                if not filename:
-                    filename = time.strftime("%Y%m%d_%H%M%S")
-                path = self.capture_directory + "/" + filename
-
-                if format == "IIQ":
-                    path += ".IIQ"
-                    img = Image.frombytes('RGB', iiq_file.Data.Length, iiq_file.Data.ToArray())
-                    qtimg = ImageQt(img)
-                    pxmap = QPixmap.fromImage(qtimg)
-                    self.last_image.setPixmap(pxmap)
-                    #System.IO.File.WriteAllBytes(path, iiq_file.Data.ToArray())
-                else:
-                    raw_image = RawImage(iiq_file.Data.Pointer, iiq_file.Data.Length)
-                    convert_config = ConvertConfig()
-                    convert_config.SetOutputWidth(14204)
-                    bitmap = convert_config.ApplyTo(raw_image)
-                    if format == "TIFF":
-                        tiff_config = TiffConfig()
-                        tiff_config.tileSize = TiffTileSize.tileSize512
-                        path += ".tif"
-                        raw_image.WriteAsTiff(path, bitmap, tiff_config)
-                    elif format == "JPEG":
-                        jpeg_config = JpegConfig()
-                        jpeg_config.Quality = 90
-                        path += ".jpg"
-                        raw_image.WriteAsJpeg(path, bitmap, jpeg_config)
-
+                frame = self.camera.WaitForImage()
+                filename = time.strftime("%Y%m%d_%H%M%S")
+                path = self.capture_directory + "\\" + filename + ".iiq"
+                data = bytes(frame.Data.ToArray())
+                with open(path, "wb") as f:
+                    f.write(data)
+                self.display_image(path)
                 self.output_to_terminal(f"Image captured: {path}")
             except Exception as e:
                 self.output_to_terminal(f"Failed to capture image: {str(e)}")
         else:
             self.output_to_terminal("No camera connected")
 
+
+    def display_image(self, path):
+        with Image.open(path) as img:
+            width, height = img.size
+            data = img.tobytes()
+            image = QImage(bytes(data), width, height, QImage.Format_RGB888)
+            pxmap = QPixmap.fromImage(image)
+            self.last_image.setPixmap(pxmap)
+        
+        
+        """
+        else:
+            raw_image = RwImage(iiq_file.Data.Pointer, iiq_file.Data.Length)
+            convert_config = ConvertConfig()
+            convert_config.SetOutputWidth(14204)
+            bitmap = convert_config.ApplyTo(raw_image)
+            if format == "TIFF":
+                tiff_config = TiffConfig()
+                tiff_config.tileSize = TiffTileSize.tileSize512
+                path += ".tif"
+                raw_image.WriteAsTiff(path, bitmap, tiff_config)
+            elif format == "JPEG":
+                jpeg_config = JpegConfig()
+                jpeg_config.Quality = 90
+                path += ".jpg"
+                raw_image.WriteAsJpeg(path, bitmap, jpeg_config)
+        """
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
