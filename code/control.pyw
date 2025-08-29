@@ -42,7 +42,6 @@ from PyQt5.QtWidgets import (
 
 from PIL import Image
 
-
 # Add Windows-specific imports for dark title bar
 import ctypes
 from ctypes import wintypes
@@ -55,64 +54,9 @@ from P1.CameraSdk import Camera
 from P1.ImageSdk import *
 import System
 
-# def jogMode(camera):
-#     print('''
-#         Use the a, s, d, q, w, and e keys to position the system. 
-#         * stage clockwise/counterclockwise = a/d
-#         * carriage up/down = w/s
-#         * camera nod forward/backward = e/q
-#         Press escape to exit this mode.
-#         ''')
-    
-#     STAGE_JOG_DISTANCE = 1600
-#     TRACK_JOG_DISTANCE = 4000
-#     NOD_JOG_DISTANCE = 6400
-
-#     while True:
-#         if keyboard.is_pressed('a'):
-#             self.send_command('J0+' + str(STAGE_JOG_DISTANCE))
-#         if keyboard.is_pressed('d'):
-#             self.send_command('J0-' + str(STAGE_JOG_DISTANCE))
-#         if keyboard.is_pressed('w'):
-#             self.send_command('J1+' + str(TRACK_JOG_DISTANCE))
-#         if keyboard.is_pressed('s'):
-#             self.send_command('J1-' + str(TRACK_JOG_DISTANCE))
-#         if keyboard.is_pressed('e'):
-#             self.send_command('J2+' + str(NOD_JOG_DISTANCE))
-#         if keyboard.is_pressed('q'):
-#             self.send_command('J2-' + str(NOD_JOG_DISTANCE))
-#         if keyboard.is_pressed('c'):
-#             if camera is not None:
-#                 camera.TriggerCapture()
-#                 image_file = camera.WaitForImage()
-#                 System.IO.File.WriteAllBytes("test_raw.iiq", image_file.Data.ToArray())
-
-#                 raw_image = RawImage(image_file.Data.Pointer, image_file.Data.Length)
-
-#                 metadata = MetaDataBase(raw_image)
-#                 success = metadata.CreateXmpNamespace("calibration", "http://www.lbxlabs.com/calibration/");
-#                 if(success):
-#                     success = metadata.CreateMetaObject("xmp:calibration:extrinsics").SetString("Values of the cameras extrinsic matrix")
-
-#                 # decodeConfig = DecodeConfig.Defaults();
-#                 # decodedImage = decodeConfig.ApplyTo(raw_image);
-#                 # System.IO.File.WriteAllBytes("bitmapBayer.bin", decodedImage.Data);
-
-#                 convertConfig = ConvertConfig()
-#                 convertConfig.SetOutputWidth(14204)
-#                 tiffConfig = TiffConfig()
-#                 tiffConfig.tileSize = TiffTileSize.tileSize512
-#                 bitmap = convertConfig.ApplyTo(raw_image)
-#                 raw_image.WriteAsTiff("test_tiff.tiff", bitmap, metadata, tiffConfig)
-
-
-#             # System.IO.File.WriteAllBytes("bitmapRGB.bin", bitmap.Data);
-#         if keyboard.is_pressed('escape'):
-#             break
-
-#         time.sleep(0.2)
-
-###
+STAGE_STEPS_PER_REVOLUTION = 0
+TRACK_MAX_STEPS = 0
+NOD_MAX_STEPS = 0
 
 class LiveViewWorker(QObject):
 
@@ -255,7 +199,7 @@ class ControlUI(QMainWindow):
                 }
             """
 
-    default_capture_directory = os.path.dirname(os.getcwd()) + "\captures\default"
+    default_capture_directory = os.path.dirname(os.getcwd()) + "/captures/default"
 
     def __init__(self):
         super().__init__()
@@ -331,8 +275,8 @@ class ControlUI(QMainWindow):
         self.machine_controls = QWidget()
         self.capture_sequence = QWidget()
         self.calibrate = QWidget()
-        self.live_view = LiveViewViewer("Live View will appear here.")
-        self.last_image = QLabel("Last capture image will appear here.")
+        self.live_view = LiveViewViewer(" ")
+        self.last_image = QLabel(" ")
 
         ## Set overall layout of the UI sections
         left_tabs = QTabWidget()
