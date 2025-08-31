@@ -73,7 +73,7 @@ class LiveViewWorker(QObject):
         while self.running:
             frame = self.camera.WaitForLiveView(1000)
             data = frame.Data.ToArray()
-            image = QImage(bytes(data), frame.Width, frame.Height, QImage.Format_RGB888)
+            image = QImage(bytes(data), frame.Width, frame.Height, QImage.Format_RGB888).copy()
             self.live_view_frame_ready.emit(image)
     
     @pyqtSlot()
