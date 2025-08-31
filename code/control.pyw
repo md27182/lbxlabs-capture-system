@@ -54,10 +54,6 @@ from P1.CameraSdk import Camera
 from P1.ImageSdk import *
 import System
 
-STAGE_STEPS_PER_REVOLUTION = 0
-TRACK_MAX_STEPS = 0
-NOD_MAX_STEPS = 0
-
 class LiveViewWorker(QObject):
 
     live_view_frame_ready = pyqtSignal(QImage)
@@ -92,6 +88,17 @@ class LiveViewViewer(QLabel):
     
 
 class ControlUI(QMainWindow):
+    # these constants were measured using limit switches
+    STAGE_STEPS_PER_REVOLUTION = 500000 #?
+    TRACK_MAX_STEPS = 700000 #?
+    NOD_MAX_STEPS = 400000 #?
+
+    # constants taken from CAD
+    TRACK_MAX_DEGREES = 107
+    NOD_MAX_DEGREES = 45 #?
+
+    TRACK_DEGREE_OFFSET = TRACK_MAX_DEGREES - 90
+    NOD_DEGREE_OFFSET = 23 #? get this from CAD
 
     user_txt_input = pyqtSignal(str)
     all_motors_stopped = pyqtSignal()
@@ -1198,7 +1205,7 @@ class ControlUI(QMainWindow):
                         for axis in range(3):
                             is_running = int(line[axis * 2 + 1])
                             pos_in_steps = int(line[axis * 2 + 2])
-                            position = self.steps_to_position(axis, pos_in_steps)
+                            position = self.steps_to_degrees(axis, pos_in_steps)
 
                             # if is_running's state changed to false, update position display
                             if self.motor_data[axis]["is_running"] is not None and self.motor_data[axis]["is_running"] != is_running and not is_running:
@@ -1266,12 +1273,33 @@ class ControlUI(QMainWindow):
             if not l.endswith('P'):
                 print("Sent command to microcontroller: " + command_nl.strip())
 
-    def steps_to_position(self, axis, steps):
-        return float(steps)
+    def steps_to_degrees(self, axis, steps):
+        match axis:
+            case 0:
+                return (steps / self.STAGE_STEPS_PER_REVOLUTION) * 360.0
+            case 1:
+                return ((self.TRACK_MAX_DEGREES / self.TRACK_MAX_STEPS) * steps) - self.TRACK_DEGREE_OFFSET
+            case 2:
+                return -1 * ((self.NOD_MAX_DEGREES / self.NOD_MAX_STEPS) * steps) + self.NOD_DEGREE_OFFSET
     
-    def position_to_steps(self, axis, position):
-        return int(position)
-    
+    def degrees_to_steps(self, axis, degrees):
+        match axis:
+            case 0:
+                return self.STAGE_STEPS_PER_REVOLUTION * int(degrees / 360.0)
+            case 1:
+                return int((self.TRACK_MAX_STEPS / self.TRACK_MAX_DEGREES) * (degrees + self.TRACK_DEGREE_OFFSET))
+            case 2:
+                return int((self.NOD_MAX_STEPS / self.NOD_MAX_DEGREES) * (-1 * degrees + self.NOD_DEGREE_OFFSET))
+            
+    def degrees_to_display_value(self, axis, degrees):
+        match axis:
+            case 0:
+                return degrees
+            case 1:
+                return degrees
+            case 2:
+                return degrees
+
     def rate_to_percentage(self, rate):
         return int(100 * rate / 4000.0)
     
@@ -1279,7 +1307,7 @@ class ControlUI(QMainWindow):
         return int((percentage / 100.0) * 4000.0)
 
     def move_to_position(self, axis, position):
-        steps = self.position_to_steps(axis, position)
+        steps = self.degrees_to_steps(axis, position)
         sign = '-' if steps < 0.0 else '+'
         self.send_command("M" + str(axis) + sign + str(abs(steps)))
 
