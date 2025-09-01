@@ -94,11 +94,17 @@ class ControlUI(QMainWindow):
     NOD_MAX_STEPS = 400000 #?
 
     # constants taken from CAD
-    TRACK_MAX_DEGREES = 107
-    NOD_MAX_DEGREES = 45 #?
+    TRACK_MAX_DEGREES = 107 # remeasure with angle gauge?
+    NOD_MAX_DEGREES = 56.55 # remeasure with angle gauge?
+    TRACK_DEGREE_OFFSET = TRACK_MAX_DEGREES - 90 # remeasure with angle gauge?
+    NOD_DEGREE_OFFSET = 30 # remeasure with angle gauge?
+    L1_LENGTH = 1492.08 # in mm
+    L2_LENGTH = 105.564 # in mm
 
-    TRACK_DEGREE_OFFSET = TRACK_MAX_DEGREES - 90
-    NOD_DEGREE_OFFSET = 23 #? get this from CAD
+    PHI_MIN = -80
+    PHI_MAX = 90
+    H_MIN = -457.2
+    H_MAX = L1_LENGTH * 0.9
 
     user_txt_input = pyqtSignal(str)
     all_motors_stopped = pyqtSignal()
@@ -971,9 +977,9 @@ class ControlUI(QMainWindow):
             case 0:
                 pass
             case 1:
-                value = max(-90.0, min(value, 90.0))  # Clip φ to [-90, 90]
+                value = max(self.PHI_MIN, min(value, self.PHI_MAX))  # Clip φ to [-90, 90]
             case 2:
-                value = max(-457.2, min(value, 1000.0))  # Clip h to [-457.2, 1000]
+                value = max(self.H_MIN, min(value, self.H_MAX))  # Clip h to [-457.2, 1000]
         le.setText(str(value))
         QLineEdit.focusOutEvent(le, event)
         if axis < 3:
@@ -1051,8 +1057,17 @@ class ControlUI(QMainWindow):
                         try:
                             phi = float(line[0])
                             h = float(line[1])
+                            if phi < self.PHI_MIN or phi > self.PHI_MAX or h < self.H_MIN or h > self.H_MAX:
+                                self.output_to_terminal("CSV file contains out-of-bounds positions")
+                                self.spin_rows = []
+                                self.spin_cols = []
+                                self.file_path_line_edit.setText(" ")
+                                return
                         except ValueError:
                             self.output_to_terminal("CSV file is not formatted correctly")
+                            self.spin_rows = []
+                            self.spin_cols = []
+                            self.file_path_line_edit.setText(" ")
                             return
                         self.spin_rows.append([phi, h])
                     elif active_section == "cols":
