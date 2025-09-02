@@ -227,7 +227,7 @@ class ControlUI(QMainWindow):
         self.actively_editing_position = [False, False, False, False]
         self.estop_pressed = False
         self.cancel_sequence_flag = False
-        self.calibration_in_progress = mp.Event()
+        self.sequence_active_flag = False
         self.waiting_for_input = False
         self.last_command = None
         self.spin_rows = []
@@ -460,7 +460,7 @@ class ControlUI(QMainWindow):
         stop_button = QPushButton("STOP")
         stop_button.setFixedHeight(70)
         stop_button.setStyleSheet(self.big_button_style_red)
-        stop_button.clicked.connect(self.stop_all_motors)
+        stop_button.clicked.connect(self.stop_button_clicked)
         machine_controls_layout.addWidget(stop_button)
 
         # Keyboard controls
@@ -915,7 +915,8 @@ class ControlUI(QMainWindow):
         self.calibrate_button.setStyleSheet(self.standard_button_style_long_in_progress)
         self.calibrate_button.setEnabled(False)
         self.calibrate_cancel_button.setVisible(True)
-        self.machine_controls.setEnabled(False)
+        self.disable_manual_controls()
+        self.sequence_active_flag = True
 
         match self.capture_sequence_stack.currentIndex():
             case 0:
@@ -927,6 +928,7 @@ class ControlUI(QMainWindow):
 
     def end_sequence(self):
         self.enable_manual_controls()
+        self.sequence_active_flag = False
         self.calibrate_button.setText("START")
         self.calibrate_button.setStyleSheet(self.standard_button_style_long)
         self.calibrate_cancel_button.setVisible(False)
@@ -1279,11 +1281,11 @@ class ControlUI(QMainWindow):
             if estop_signal_detected and not self.estop_pressed:
                 self.estop_pressed = True
                 self.output_to_terminal("Emergency stop button has been pressed. Please release the button to re-enable the machine.")
-                self.machine_controls.setEnabled(False)
+                self.disable_manual_controls()
             elif not estop_signal_detected and self.estop_pressed:
                 self.estop_pressed = False
                 self.output_to_terminal("Emergency stop button has been released")
-                self.machine_controls.setEnabled(True)
+                self.enable_manual_controls()
 
             if not any(self.actively_editing_position):
                 self.update_position_colors()
@@ -1319,11 +1321,24 @@ class ControlUI(QMainWindow):
 
     def degrees_to_positions(self, degree_values: list[float]):
         d = degree_values
-        return d
+        theta = d[0] % 360
+        phi = d[1]
+        h = d[2]
+        return [theta, phi, h]
 
     def positions_to_degrees(self, position_values: list[float]):
         p = position_values
-        return p
+
+        current_stage_motor_degrees = self.steps_to_degrees(0, self.motor_data[0]["steps"])
+        current_revs = current_stage_motor_degrees // 360
+        diff = current_stage_motor_degrees % 360 - p[0]
+        k = round(diff / 360)
+        current_revs += k
+        stage_motor_degrees = p[0] + (current_revs * 360)
+        
+        track_motor_degrees = p[1]
+        nod_motor_degrees = p[2]
+        return [stage_motor_degrees, track_motor_degrees, nod_motor_degrees]
 
     def steps_to_positions(self, steps: list[int]):
         degree_values = [self.steps_to_degrees(i, s) for i, s in enumerate(steps)]
@@ -1368,6 +1383,12 @@ class ControlUI(QMainWindow):
         elif type == "accel":
             self.send_command("A" + str(axis) + "+" + str(rate))
             # TODO now read speed back from controller and update UI
+
+    def stop_button_clicked(self):
+        if self.sequence_active_flag:
+            self.cancel_sequence()
+        else:
+            self.stop_all_motors()
         
     def stop_all_motors(self):
         for i in range(3):
@@ -1404,7 +1425,6 @@ class ControlUI(QMainWindow):
             for c in col_values:
                 if self.cancel_sequence_flag:
                     self.cancel_sequence_flag = False
-                    self.end_sequence()
                     return
                 self.move_capture_wait(c, r[0], r[1])
 
