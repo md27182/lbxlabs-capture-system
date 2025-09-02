@@ -2,6 +2,7 @@ import serial
 import time
 import sys
 import os
+import math
 import glob
 import csv
 import multiprocessing as mp
@@ -101,6 +102,8 @@ class ControlUI(QMainWindow):
     L1_LENGTH = 1492.08 # in mm
     L2_LENGTH = 105.564 # in mm
 
+    THETA_MIN = 0
+    THETA_MAX = 360
     PHI_MIN = -80
     PHI_MAX = 90
     H_MIN = -457.2
@@ -977,7 +980,7 @@ class ControlUI(QMainWindow):
         value = float(le.text())
         match axis:
             case 0:
-                pass
+                value = value % 360  # Clip θ to [0, 360]
             case 1:
                 value = max(self.PHI_MIN, min(value, self.PHI_MAX))  # Clip φ to [-90, 90]
             case 2:
@@ -1045,6 +1048,7 @@ class ControlUI(QMainWindow):
             active_section = None
             self.spin_rows = []
             self.spin_cols = []
+            reset = False
             for line in data:
                 if line:
                     if line[0].startswith("#"):
@@ -1060,25 +1064,27 @@ class ControlUI(QMainWindow):
                             phi = float(line[0])
                             h = float(line[1])
                             if phi < self.PHI_MIN or phi > self.PHI_MAX or h < self.H_MIN or h > self.H_MAX:
-                                self.output_to_terminal("CSV file contains out-of-bounds positions")
-                                self.spin_rows = []
-                                self.spin_cols = []
-                                self.file_path_line_edit.setText(" ")
-                                return
+                                self.output_to_terminal("CSV file contains out-of-bounds phi or h positions")
+                                reset = True
                         except ValueError:
                             self.output_to_terminal("CSV file is not formatted correctly")
-                            self.spin_rows = []
-                            self.spin_cols = []
-                            self.file_path_line_edit.setText(" ")
-                            return
+                            reset = True
                         self.spin_rows.append([phi, h])
                     elif active_section == "cols":
                         try:
                             theta = float(line[0])
+                            if theta < self.THETA_MIN or theta > self.THETA_MAX:
+                                self.output_to_terminal("CSV file contains out-of-bounds theta positions")
+                                reset = True
                         except ValueError:
                             self.output_to_terminal("CSV file is not formatted correctly")
-                            return
+                            reset = True
                         self.spin_cols.append(theta)
+                    if reset:
+                        self.spin_rows = []
+                        self.spin_cols = []
+                        self.file_path_line_edit.setText(" ")
+                        return
         
         self.rows_value_label.setText(str(len(self.spin_rows)))
         if self.spin_cols:
@@ -1320,11 +1326,20 @@ class ControlUI(QMainWindow):
                 return int((self.NOD_MAX_STEPS / self.NOD_MAX_DEGREES) * (-1 * degrees + self.NOD_DEGREE_OFFSET))
 
     def degrees_to_positions(self, degree_values: list[float]):
-        d = degree_values
+        d = [math.radians(i) for i in degree_values]
+
+        # calculate theta
         theta = d[0] % 360
-        phi = d[1]
+        
+        # calculate h
+        x_c = self.L1_LENGTH * math.cos(d[1]) + self.L2_LENGTH * math.cos(d[1] + d[2])
+        y_c = self.L1_LENGTH * math.sin(d[1]) + self.L2_LENGTH * math.sin(d[1] + d[2])
         h = d[2]
-        return [theta, phi, h]
+        
+        # calculate phi prime (shifted phi so it is centered around (0, h))
+        phi_prime = d[1]
+
+        return [theta, phi_prime, h]
 
     def positions_to_degrees(self, position_values: list[float]):
         p = position_values
@@ -1335,7 +1350,7 @@ class ControlUI(QMainWindow):
         k = round(diff / 360)
         current_revs += k
         stage_motor_degrees = p[0] + (current_revs * 360)
-        
+
         track_motor_degrees = p[1]
         nod_motor_degrees = p[2]
         return [stage_motor_degrees, track_motor_degrees, nod_motor_degrees]
