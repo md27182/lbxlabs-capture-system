@@ -90,15 +90,19 @@ class LiveViewViewer(QLabel):
 
 class ControlUI(QMainWindow):
     # these constants were measured using limit switches
-    STAGE_STEPS_PER_REVOLUTION = 500000 #?
-    TRACK_MAX_STEPS = 700000 #?
-    NOD_MAX_STEPS = 400000 #?
+    STAGE_STEPS_PER_REVOLUTION = 708839
+    TRACK_MAX_STEPS = 780120 - 2 * (4 * 50)
+    NOD_MAX_STEPS = 143117 - 2 * (64 * 10)
 
-    # constants taken from CAD
-    TRACK_MAX_DEGREES = 107 # remeasure with angle gauge?
-    NOD_MAX_DEGREES = 56.55 # remeasure with angle gauge?
-    TRACK_DEGREE_OFFSET = TRACK_MAX_DEGREES - 90 # remeasure with angle gauge?
-    NOD_DEGREE_OFFSET = 30 # remeasure with angle gauge?
+    # these values were measured using a digital angle gauge
+    TRACK_MAX_DEGREES = 90.7 + 16.7
+    NOD_MAX_DEGREES = 29.9 + 27.4
+
+    TRACK_DEGREE_OFFSET = 16.7
+    NOD_DEGREE_OFFSET = 29.9
+    H_OFFSET = 457.2 # 18 inches to mm
+
+    # these values were taken from CAD
     L1_LENGTH = 1492.08 # in mm
     L2_LENGTH = 105.564 # in mm
 
@@ -106,8 +110,8 @@ class ControlUI(QMainWindow):
     THETA_MAX = 360
     PHI_MIN = -80
     PHI_MAX = 90
-    H_MIN = -457.2
-    H_MAX = L1_LENGTH * 0.9
+    H_MIN = 0
+    H_MAX = L1_LENGTH * 0.9 + H_OFFSET
 
     user_txt_input = pyqtSignal(str)
     all_motors_stopped = pyqtSignal()
@@ -222,6 +226,7 @@ class ControlUI(QMainWindow):
 
         self.update_positions = True
         self.motor_data = [{ "is_running": None, "steps": None, "speed": None, "accel": None } for axis in range(3)]
+        self.target_positions = [None, None, None]
         self.homing = [False, False, False]
         self.wrong_direction_flag = False
         self.alarm_flag = False
@@ -252,7 +257,7 @@ class ControlUI(QMainWindow):
         self.pressed_keys = set()
         self.keyboard_timer = QTimer()
         self.keyboard_timer.timeout.connect(self.process_keyboard_commands)
-        self.keyboard_timer.start(1000)  # Fire every 1000ms
+        self.keyboard_timer.start(500)  # Fire every 500ms
 
     def set_dark_theme(self):
         palette = QPalette()
@@ -954,7 +959,7 @@ class ControlUI(QMainWindow):
     def update_position_colors(self):
         for axis in range(3):
             le = self.geo[axis]['pos_line_edit']
-            if self.motor_data[axis]["is_moving"]:
+            if self.motor_data[axis]["is_running"]:
                 le.setStyleSheet(self.pos_line_edit_unmatched_style)
             else:
                 le.setStyleSheet(self.pos_line_edit_matched_style)
@@ -977,7 +982,11 @@ class ControlUI(QMainWindow):
         """Handle when user stops editing a position field"""
         self.actively_editing_position[axis] = False
         # Clip values to valid range
-        value = float(le.text())
+        try:
+            value = float(le.text())
+        except ValueError:
+            self.update_positions = True
+            return
         match axis:
             case 0:
                 value = value % 360  # Clip θ to [0, 360]
@@ -985,10 +994,10 @@ class ControlUI(QMainWindow):
                 value = max(self.PHI_MIN, min(value, self.PHI_MAX))  # Clip φ to [-90, 90]
             case 2:
                 value = max(self.H_MIN, min(value, self.H_MAX))  # Clip h to [-457.2, 1000]
-        le.setText(str(value))
+        le.setText(f"{value:.3f}")
+        self.target_positions[axis] = value
         QLineEdit.focusOutEvent(le, event)
-        if axis < 3:
-            self.new_position_entered()
+        self.new_position_entered(axis, value)
 
     def rate_line_edit_focus_out(self, event, rate_type, axis, line_edit, slider):
         QLineEdit.focusOutEvent(line_edit, event)
@@ -1178,10 +1187,13 @@ class ControlUI(QMainWindow):
             for a in range(3):
                 self.send_command(f'H{a}')
     
-    def new_position_entered(self):
-        line_edits = self.geo[:]['pos_line_edit']
-        position_values = [float(le.text()) for le in line_edits]
-        # line_edit.clearFocus()
+    def new_position_entered(self, axis, value):
+        current_step_positions = [self.motor_data[i]['steps'] for i in range(3)]
+        current_positions = self.steps_to_positions(current_step_positions)
+        position_values = [target if target is not None else current_positions[i] for i, target in enumerate(self.target_positions)]
+        print("TARGETPOSITIONS: ", self.target_positions)
+        print("MOVETOPOSITION: ", position_values)
+        
         self.move_to_position(position_values)
 
     def new_rate_entered(self, type, axis):
@@ -1199,10 +1211,11 @@ class ControlUI(QMainWindow):
                 step_incr = 20000
             case 2:  # h
                 step_incr = 40000
+        # self.target_positions[axis] = None
         updated_step_position = self.move_to_step_position(axis, current_step_position + direction * step_incr)
         self.update_positions = True
         # updated_position = self.steps_to_position(axis, updated_step_position)
-        # line_edit.setText(f"{updated_position:.4f}")
+        # line_edit.setText(f"{updated_position:.3f}")
 
     def setup_serial_polling(self):
         """Setup timer to poll microcontroller for serial output"""
@@ -1217,9 +1230,9 @@ class ControlUI(QMainWindow):
             self.serial.write('\r\n\r\n'.encode())
             self.serial.flushInput()
             self.microcontroller_connected = True
-            self.output_to_terminal("Microcontroller connected")
+            self.output_to_terminal("Motors connected")
         except Exception as e:
-            self.output_to_terminal(f"Unable to connect to microcontroller: {str(e)}")
+            self.output_to_terminal(f"Unable to connect to motors: {str(e)}")
         if self.microcontroller_connected:
             self.poll_serial()
             self.request_rates()
@@ -1244,6 +1257,7 @@ class ControlUI(QMainWindow):
                             # if this motor just stopped, update all positions in the UI 
                             if self.motor_data[axis]["is_running"] is not None and self.motor_data[axis]["is_running"] != is_running and not is_running:
                                 self.update_positions = True
+                                self.target_positions[axis] = None
                                 # if the other motors were already stopped, emit all_motors_stopped
                                 other_axes = [i for i in range(3) if i != axis]
                                 if all(not self.motor_data[i]["is_running"] for i in other_axes):
@@ -1253,9 +1267,11 @@ class ControlUI(QMainWindow):
                             self.motor_data[axis]["steps"] = pos_in_steps
 
                         if self.update_positions:
-                            position_values = self.steps_to_positions(self.motor_data[:]["steps"])
+                            list_of_step_values = [self.motor_data[i]["steps"] for i in range(3)]
+                            positions = self.steps_to_positions(list_of_step_values)
                             for i in range(3):
-                                self.geo[i]['pos_line_edit'].setText(f"{position_values[i]:.4f}")
+                                if self.target_positions[i] is None:
+                                    self.geo[i]['pos_line_edit'].setText(f"{positions[i]:.3f}")
                             self.update_positions = False
                     elif line[0] == "R":
                         for axis in range(3):
@@ -1293,8 +1309,7 @@ class ControlUI(QMainWindow):
                 self.output_to_terminal("Emergency stop button has been released")
                 self.enable_manual_controls()
 
-            if not any(self.actively_editing_position):
-                self.update_position_colors()
+            self.update_position_colors()
     
     def request_rates(self):
         self.send_command('R')
@@ -1312,16 +1327,18 @@ class ControlUI(QMainWindow):
             case 0:
                 return (steps / self.STAGE_STEPS_PER_REVOLUTION) * 360.0
             case 1:
-                return ((self.TRACK_MAX_DEGREES / self.TRACK_MAX_STEPS) * steps) - self.TRACK_DEGREE_OFFSET
+                return 3.44e-11 * math.pow(steps, 2) + 1.11e-4 * steps - self.TRACK_DEGREE_OFFSET
+                # return ((self.TRACK_MAX_DEGREES / self.TRACK_MAX_STEPS) * steps) - self.TRACK_DEGREE_OFFSET
             case 2:
                 return -1 * ((self.NOD_MAX_DEGREES / self.NOD_MAX_STEPS) * steps) + self.NOD_DEGREE_OFFSET
     
     def degrees_to_steps(self, axis, degrees):
         match axis:
             case 0:
-                return self.STAGE_STEPS_PER_REVOLUTION * int(degrees / 360.0)
+                return int(self.STAGE_STEPS_PER_REVOLUTION * degrees / 360.0)
             case 1:
-                return int((self.TRACK_MAX_STEPS / self.TRACK_MAX_DEGREES) * (degrees + self.TRACK_DEGREE_OFFSET))
+                return int((-1.11e-4 + math.sqrt(1.2321e-8 + 1.376e-10 * (self.TRACK_DEGREE_OFFSET + degrees))) / 6.88e-11)
+                # return int((self.TRACK_MAX_STEPS / self.TRACK_MAX_DEGREES) * (degrees + self.TRACK_DEGREE_OFFSET))
             case 2:
                 return int((self.NOD_MAX_STEPS / self.NOD_MAX_DEGREES) * (-1 * degrees + self.NOD_DEGREE_OFFSET))
 
@@ -1329,21 +1346,25 @@ class ControlUI(QMainWindow):
         d = [math.radians(i) for i in degree_values]
 
         # calculate theta
-        theta = d[0] % 360
+        theta = degree_values[0] % 360
         
         # calculate h
-        x_c = self.L1_LENGTH * math.cos(d[1]) + self.L2_LENGTH * math.cos(d[1] + d[2])
-        y_c = self.L1_LENGTH * math.sin(d[1]) + self.L2_LENGTH * math.sin(d[1] + d[2])
-        h = d[2]
+        # x_c = self.L1_LENGTH * math.cos(d[1]) + self.L2_LENGTH * math.cos(d[1] + d[2])
+        # y_c = self.L1_LENGTH * math.sin(d[1]) + self.L2_LENGTH * math.sin(d[1] + d[2])
+
+        # h = (self.L1_LENGTH * math.cos(d[2]) + self.L2_LENGTH) / math.sin(d[1] + d[2])# + self.H_OFFSET
+
+        h = degree_values[2]
         
         # calculate phi prime (shifted phi so it is centered around (0, h))
-        phi_prime = d[1]
+        phi_prime = degree_values[1]
 
         return [theta, phi_prime, h]
 
     def positions_to_degrees(self, position_values: list[float]):
         p = position_values
 
+        # calculate stage motor degrees
         current_stage_motor_degrees = self.steps_to_degrees(0, self.motor_data[0]["steps"])
         current_revs = current_stage_motor_degrees // 360
         diff = current_stage_motor_degrees % 360 - p[0]
@@ -1351,17 +1372,34 @@ class ControlUI(QMainWindow):
         current_revs += k
         stage_motor_degrees = p[0] + (current_revs * 360)
 
+        # calculate track motor degrees
         track_motor_degrees = p[1]
+
+        # calculate nod motor degrees
         nod_motor_degrees = p[2]
+        # h_off = p[2]# - self.H_OFFSET
+        # tmd = track_motor_degrees
+        # const_1 = math.atan2(h_off * math.cos(tmd), h_off * math.sin(tmd) - self.L1_LENGTH)
+        # const_2 = math.sqrt(math.pow(h_off * math.sin(tmd) - self.L1_LENGTH, 2) + h_off * math.pow(math.cos(tmd), 2))
+        # nod_motor_degrees = const_1 - math.acos(self.L2_LENGTH / const_2)
+
         return [stage_motor_degrees, track_motor_degrees, nod_motor_degrees]
 
     def steps_to_positions(self, steps: list[int]):
+        print("steps_to_positions step values: ", steps)
         degree_values = [self.steps_to_degrees(i, s) for i, s in enumerate(steps)]
-        return self.degrees_to_positions(degree_values)
+        print("steps_to_positions degree values: ", degree_values)
+        position_values = self.degrees_to_positions(degree_values)
+        print("steps_to_positions position values: ", position_values)
+        return position_values
 
     def positions_to_steps(self, positions: list[float]):
-        degrees_values = self.positions_to_degrees(positions)
-        return self.degrees_to_steps(degrees_values)
+        print("positions_to_steps position values: ", positions)
+        degree_values = self.positions_to_degrees(positions)
+        print("positions_to_steps degree values: ", degree_values)
+        step_values = [self.degrees_to_steps(i, degree_values[i]) for i in range(3)]
+        print("positions_to_steps step values: ", step_values)
+        return step_values
 
     def rate_to_percentage(self, rate):
         return int(100 * rate / 4000.0)
@@ -1376,13 +1414,16 @@ class ControlUI(QMainWindow):
             case 1:
                 if steps > self.TRACK_MAX_STEPS:
                     steps = self.TRACK_MAX_STEPS
+                if steps < 0:
+                    steps = 0
             case 2:
                 if steps > self.NOD_MAX_STEPS:
                     steps = self.NOD_MAX_STEPS
-        if steps < 0:
-            steps = 0
+                if steps < 0:
+                    steps = 0
 
-        self.send_command("M" + str(axis) + '+' + str(abs(steps)))
+        sign = '+' if steps >= 0 else '-'
+        self.send_command("M" + str(axis) + sign + str(abs(steps)))
         return steps
 
     def move_to_position(self, position_values):
@@ -1410,6 +1451,7 @@ class ControlUI(QMainWindow):
             self.stop_motor(i)
 
     def stop_motor(self, axis):
+        self.target_positions[axis] = None
         self.send_command("E" + str(axis))
 
     ### CAPTURE SEQUENCE RELATED FUNCTIONS ###
