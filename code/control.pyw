@@ -1355,6 +1355,7 @@ class ControlUI(QMainWindow):
         # h = (self.L1_LENGTH * math.cos(d[2]) + self.L2_LENGTH) / math.sin(d[1] + d[2])# + self.H_OFFSET
 
         h = degree_values[2]
+        #h_gem = (L1 * np.cos(t2) + L2) / np.sin(t1 + t2)
         
         # calculate phi prime (shifted phi so it is centered around (0, h))
         phi_prime = degree_values[1]
@@ -1382,6 +1383,12 @@ class ControlUI(QMainWindow):
         # const_1 = math.atan2(h_off * math.cos(tmd), h_off * math.sin(tmd) - self.L1_LENGTH)
         # const_2 = math.sqrt(math.pow(h_off * math.sin(tmd) - self.L1_LENGTH, 2) + h_off * math.pow(math.cos(tmd), 2))
         # nod_motor_degrees = const_1 - math.acos(self.L2_LENGTH / const_2)
+
+        # term1 = np.atan2(-(h_gem - L1 * np.sin(t1)), L1 * np.cos(t1))
+        # term2 = np.arccos(-L2 / np.sqrt((L1*np.cos(t1))**2 + (h_gem - L1*np.sin(t1))**2))
+        # t2_ik_gpt = term1 + term2 - t1
+
+
 
         return [stage_motor_degrees, track_motor_degrees, nod_motor_degrees]
 
