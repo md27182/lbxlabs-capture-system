@@ -1518,14 +1518,15 @@ class ControlUI(QMainWindow):
         if self.camera is not None:
             try:
                 self.camera.TriggerCapture()
-                frame = self.camera.WaitForImage()
-                filename = time.strftime("%Y%m%d_%H%M%S")
-                path = self.capture_directory + "\\" + filename + ".iiq"
-                data = bytes(frame.Data.ToArray())
-                with open(path, "wb") as f:
-                    f.write(data)
-                self.display_image(path)
-                self.output_to_terminal(f"Image captured: {path}")
+                for i in range(7):
+                    frame = self.camera.WaitForImage()
+                    filename = time.strftime("%Y%m%d_%H%M%S")
+                    path = self.capture_directory + "\\" + filename + ".iiq"
+                    data = bytes(frame.Data.ToArray())
+                    with open(path, "wb") as f:
+                        f.write(data)
+                    self.display_image(path)
+                    self.output_to_terminal(f"Image captured: {path}")
             except Exception as e:
                 self.output_to_terminal(f"Failed to capture image: {str(e)}")
         else:
