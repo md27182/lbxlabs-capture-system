@@ -1343,18 +1343,14 @@ class ControlUI(QMainWindow):
                 return int((self.NOD_MAX_STEPS / self.NOD_MAX_DEGREES) * (-1 * degrees + self.NOD_DEGREE_OFFSET))
 
     def degrees_to_positions(self, degree_values: list[float]):
-        d = [math.radians(i) for i in degree_values]
+        g_k = math.radians(degree_values[2]) + math.pi - np.acos(self.L2_LENGTH / self.L1_LENGTH)
+        p_k = math.radians(degree_values[1])
 
         # calculate theta
         theta = degree_values[0] % 360
-        
-        # calculate h
-        # x_c = self.L1_LENGTH * math.cos(d[1]) + self.L2_LENGTH * math.cos(d[1] + d[2])
-        # y_c = self.L1_LENGTH * math.sin(d[1]) + self.L2_LENGTH * math.sin(d[1] + d[2])
 
-        # h = (self.L1_LENGTH * math.cos(d[2]) + self.L2_LENGTH) / math.sin(d[1] + d[2])# + self.H_OFFSET
-
-        h = degree_values[2]
+        h = (self.L1_LENGTH * math.cos(g_k) + self.L2_LENGTH) / math.sin(p_k + g_k)# + self.H_OFFSET
+        #h = degree_values[2]
         #h_gem = (L1 * np.cos(t2) + L2) / np.sin(t1 + t2)
         
         # calculate phi prime (shifted phi so it is centered around (0, h))
@@ -1377,18 +1373,18 @@ class ControlUI(QMainWindow):
         track_motor_degrees = p[1]
 
         # calculate nod motor degrees
-        nod_motor_degrees = p[2]
+        # nod_motor_degrees = p[2]
         # h_off = p[2]# - self.H_OFFSET
-        # tmd = track_motor_degrees
+        p_k = math.radians(track_motor_degrees)
+
+        term1 = np.atan2(-(p[2] - self.L1_LENGTH * np.sin(p_k)), self.L1_LENGTH * np.cos(p_k))
+        term2 = np.arccos(-self.L2_LENGTH / np.sqrt((self.L1_LENGTH*np.cos(p_k))**2 + (p[2] - self.L1_LENGTH*np.sin(p_k))**2))
+        g_k = term1 + term2 - p_k
+        nod_motor_degrees = math.degrees(g_k - math.pi + np.arccos(self.L2_LENGTH / self.L1_LENGTH))  # convert back to degrees
+
         # const_1 = math.atan2(h_off * math.cos(tmd), h_off * math.sin(tmd) - self.L1_LENGTH)
         # const_2 = math.sqrt(math.pow(h_off * math.sin(tmd) - self.L1_LENGTH, 2) + h_off * math.pow(math.cos(tmd), 2))
         # nod_motor_degrees = const_1 - math.acos(self.L2_LENGTH / const_2)
-
-        # term1 = np.atan2(-(h_gem - L1 * np.sin(t1)), L1 * np.cos(t1))
-        # term2 = np.arccos(-L2 / np.sqrt((L1*np.cos(t1))**2 + (h_gem - L1*np.sin(t1))**2))
-        # t2_ik_gpt = term1 + term2 - t1
-
-
 
         return [stage_motor_degrees, track_motor_degrees, nod_motor_degrees]
 
