@@ -55,6 +55,30 @@ from P1.CameraSdk import Camera
 from P1.ImageSdk import *
 import System
 
+
+class AspectRatioLabel(QLabel):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.original_pixmap = QPixmap()
+        self.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Ignored)
+
+    def setPixmap(self, pixmap):
+        self.original_pixmap = pixmap
+        self.resize_pixmap()
+
+    def resizeEvent(self, event):
+        self.resize_pixmap()
+        super().resizeEvent(event)
+
+    def resize_pixmap(self):
+        if not self.original_pixmap.isNull():
+            scaled_pixmap = self.original_pixmap.scaled(
+                self.size(),
+                Qt.AspectRatioMode.KeepAspectRatio,
+                Qt.TransformationMode.SmoothTransformation
+            )
+            super().setPixmap(scaled_pixmap)
+
 class LiveViewWorker(QObject):
 
     live_view_frame_ready = pyqtSignal(QImage)
@@ -77,8 +101,7 @@ class LiveViewWorker(QObject):
     def stop(self):
         self.running = False
 
-
-class LiveViewViewer(QLabel):
+class LiveViewViewer(AspectRatioLabel):
     def __init__(self, placeholder_text):
         super().__init__(placeholder_text)
     
@@ -86,7 +109,6 @@ class LiveViewViewer(QLabel):
     def on_frame(self, image):
         pixmap = QPixmap.fromImage(image)
         self.setPixmap(pixmap)
-    
 
 class ControlUI(QMainWindow):
     # these constants were measured using limit switches
@@ -298,7 +320,7 @@ class ControlUI(QMainWindow):
         self.capture_sequence = QWidget()
         self.calibrate = QWidget()
         self.live_view = LiveViewViewer(" ")
-        self.last_image = QLabel(" ")
+        self.last_image = AspectRatioLabel(" ")
 
         ## Set overall layout of the UI sections
         left_tabs = QTabWidget()
@@ -379,7 +401,7 @@ class ControlUI(QMainWindow):
         geo_grid_layout = QGridLayout(self.geo_grid)
 
         self.geo = [{}, {}, {}, {}]
-        for axis, axis_name in enumerate(["θ", "φ", "h", "f"]):
+        for axis, axis_name in enumerate(["θ", "φ", "h"]):
             axis_label = QLabel(axis_name + " ")
             axis_main_font_style = """
                 font-size: 12pt;
@@ -504,8 +526,6 @@ class ControlUI(QMainWindow):
             "<tr><td style='padding-right:16px; text-align:right;'>A/D:</td><td>θ ±</td></tr>"
             "<tr><td style='padding-right:16px; text-align:right;'>W/S:</td><td>φ ±</td></tr>"
             "<tr><td style='padding-right:16px; text-align:right;'>E/Q:</td><td>h ±</td></tr>"
-            "<tr><td style='padding-right:16px; text-align:right;'>P/O:</td><td>f ±</td></tr>"
-            "<tr><td style='padding-right:16px; text-align:right;'>C:</td><td>capture image</td></tr>"
             "</table>"
         )
         help_button.setToolTipDuration(0)  # Show tooltip indefinitely
@@ -725,69 +745,26 @@ class ControlUI(QMainWindow):
         self.cols_value_label.setVisible(False)
         spin_set_cols_layout.addWidget(self.cols_value_label)
 
-        # Multiple focuses per position widget
-        spin_set_focus_widget = QWidget()
-        spin_set_layout.addWidget(spin_set_focus_widget)
-        spin_set_focus_layout = QHBoxLayout(spin_set_focus_widget)
-        spin_set_focus_layout.setContentsMargins(10, 5, 10, 5)
+        # Number of captures widget
+        num_captures_widget = QWidget()
+        spin_set_layout.addWidget(num_captures_widget)
+        num_captures_layout = QHBoxLayout(num_captures_widget)
+        num_captures_layout.setContentsMargins(10, 5, 10, 5)
 
-        focus_label = QLabel("Multiple focuses per position")
-        focus_label.setStyleSheet(self.standard_label_font)
-        spin_set_focus_layout.addWidget(focus_label)
+        num_captures_label = QLabel("Number of captures per position")
+        num_captures_label.setStyleSheet(self.standard_label_font)
+        num_captures_layout.addWidget(num_captures_label)
 
-        self.focus_checkbox = QCheckBox()
-        self.focus_checkbox.setStyleSheet(self.standard_checkbox_style)
-        spin_set_focus_layout.addWidget(self.focus_checkbox, 1, Qt.AlignRight)
-
-        # Distance between focuses widget
-        focus_distance_widget = QWidget()
-        spin_set_layout.addWidget(focus_distance_widget)
-        focus_distance_layout = QHBoxLayout(focus_distance_widget)
-        focus_distance_layout.setContentsMargins(10, 5, 10, 5)
-
-        focus_distance_label = QLabel("Dist. between focuses")
-        focus_distance_label.setStyleSheet(self.standard_label_font)
-        focus_distance_layout.addWidget(focus_distance_label)
-
-        self.focus_distance_line_edit = QLineEdit()
-        self.focus_distance_line_edit.setText("2.0")
-        self.focus_distance_line_edit.setStyleSheet("""
+        self.num_captures_line_edit = QLineEdit()
+        self.num_captures_line_edit.setText("1")
+        self.num_captures_line_edit.setStyleSheet("""
             QLineEdit {
                 font-size: 9pt;
                 background-color: #3a3a3a;
             }
         """)
-        focus_distance_layout.addStretch()
-        focus_distance_layout.addWidget(self.focus_distance_line_edit)
-
-        focus_distance_units = QLabel("(mm)")
-        focus_distance_units.setStyleSheet(self.standard_label_font)
-        focus_distance_layout.addWidget(focus_distance_units)
-
-        # Maximum diameter widget
-        max_diameter_widget = QWidget()
-        spin_set_layout.addWidget(max_diameter_widget)
-        max_diameter_layout = QHBoxLayout(max_diameter_widget)
-        max_diameter_layout.setContentsMargins(10, 5, 10, 5)
-
-        max_diameter_label = QLabel("Max diameter of subject")
-        max_diameter_label.setStyleSheet(self.standard_label_font)
-        max_diameter_layout.addWidget(max_diameter_label)
-
-        self.max_diameter_line_edit = QLineEdit()
-        self.max_diameter_line_edit.setText("100.0")
-        self.max_diameter_line_edit.setStyleSheet("""
-            QLineEdit {
-                font-size: 9pt;
-                background-color: #3a3a3a;
-            }
-        """)
-        max_diameter_layout.addStretch()
-        max_diameter_layout.addWidget(self.max_diameter_line_edit)
-
-        max_diameter_units = QLabel("(mm)")
-        max_diameter_units.setStyleSheet(self.standard_label_font)
-        max_diameter_layout.addWidget(max_diameter_units)
+        num_captures_layout.addStretch()
+        num_captures_layout.addWidget(self.num_captures_line_edit)
 
         ## Fibonacci sphere controls ##
         fibonacci_widget = QWidget()
@@ -1104,7 +1081,7 @@ class ControlUI(QMainWindow):
         """Handle key press events"""
         if self.keyboard_controls_toggle.isChecked() and not event.isAutoRepeat():
             key = event.key()
-            if key in [Qt.Key_A, Qt.Key_D, Qt.Key_W, Qt.Key_S, Qt.Key_E, Qt.Key_Q, Qt.Key_P, Qt.Key_O, Qt.Key_C]:
+            if key in [Qt.Key_A, Qt.Key_D, Qt.Key_W, Qt.Key_S, Qt.Key_E, Qt.Key_Q, Qt.Key_P, Qt.Key_O]:
                 self.pressed_keys.add(key)
                 self.process_key(key)
         super().keyPressEvent(event)
@@ -1127,8 +1104,7 @@ class ControlUI(QMainWindow):
         """Process held down keys periodically"""
         if self.keyboard_controls_toggle.isChecked():
             for key in self.pressed_keys:
-                if key != Qt.Key_C:  # Don't repeat camera capture
-                    self.process_key(key)
+                self.process_key(key)
 
     def process_key(self, key):
         """Process individual key commands"""
@@ -1148,8 +1124,6 @@ class ControlUI(QMainWindow):
             self.increment_position(3, 1)  # f + 10 mm
         elif key == Qt.Key_O:
             self.increment_position(3, -1)  # f - 10 mm
-        # elif key == Qt.Key_C:
-    #         self.capture_image()
 
     ### CAMERA RELATED FUNCTIONS ###
 
