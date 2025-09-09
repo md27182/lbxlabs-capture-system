@@ -74,7 +74,7 @@ bool needs_homing[3] = {1, 1, 1};
 
 void checkAndHandleLimitSwitch(LimitSwitch& ls) {
   if (digitalRead(ls.pin) && digitalRead(ls.pin) && digitalRead(ls.pin)) {
-    long hit_position = ls.motor->currentPosition();
+    //long hit_position = ls.motor->currentPosition();
     // Stop the motor immediately and set the position and speed to zero
     ls.motor->setCurrentPosition(0);
 
@@ -103,9 +103,7 @@ void checkAndHandleLimitSwitch(LimitSwitch& ls) {
     } else {
       needs_homing[ls.axis] = 1;
       Serial.print("L ");
-      Serial.print(ls.id);
-      Serial.print(" ");
-      Serial.println(hit_position);
+      Serial.println(ls.id);
     }
   }
 }
@@ -146,7 +144,9 @@ void loop() {
     stageMotor.setCurrentPosition(0);
     trackMotor.setCurrentPosition(0);
     nodMotor.setCurrentPosition(0);
-    bool needs_homing[3] = {1, 1, 1};
+    needs_homing[0] = 1;
+    needs_homing[1] = 1;
+    needs_homing[2] = 1;
     delay(50);
     return;
   }
@@ -160,12 +160,6 @@ void loop() {
     if (incomingByte == '\n') {
       // Convert the axis char to an int
       int axis = incomingBytes[1] - '0';
-
-      // UNCOMMENT THIS ONCE THIS CODE IS FINALIZED
-      // if ((incomingBytes[0] == 'M' || incomingBytes[0] == 'J') && needs_homing[axis] == 1) {
-      //   Serial.println("N");
-      //   continue; 
-      // }
 
       // Convert the value at the end of the command to an int
       long value = 0;
@@ -192,7 +186,11 @@ void loop() {
 
       switch (incomingBytes[0]) {
         case 'M': // Move to position
-          motor->moveTo(value);
+          if (needs_homing[axis] != 1) {
+            motor->moveTo(value);
+          } else {
+            Serial.println("N");
+          }
           break;
         case 'J': // Jog
           motor->move(value);
@@ -214,6 +212,7 @@ void loop() {
         case 'E': // Stop all motors
           motor->stop();
           homing[axis] = 0;
+          break;
         case 'P': // Send motor isRunning and position data
           Serial.print("P");
           Serial.print(" ");
@@ -266,7 +265,7 @@ void loop() {
   // Check stage limit switch separately
   if (digitalRead(stageLimitPin) && digitalRead(stageLimitPin) && digitalRead(stageLimitPin)) {
     if (homing[0] == 1) {
-      stageMotor.move(100);
+      stageMotor.move(-2211);
 
       Serial.println("L SOLS");
 
