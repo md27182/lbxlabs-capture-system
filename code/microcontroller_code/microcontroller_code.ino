@@ -69,8 +69,8 @@ int byteCounter = 0;
 
 // Variables to keep track of machine states
 float lastNonzeroTrackMotorSpeed = 0;
-int homing[3] = {0, 0, 0};
-bool needs_homing[3] = {1, 1, 1};
+int homing[3];
+bool needs_homing[3];
 
 void checkAndHandleLimitSwitch(LimitSwitch& ls) {
   if (digitalRead(ls.pin) && digitalRead(ls.pin) && digitalRead(ls.pin)) {
@@ -110,6 +110,11 @@ void checkAndHandleLimitSwitch(LimitSwitch& ls) {
 
 void setup() {
   Serial.begin(115200);
+
+  for (int i = 0; i < 3; i++) {
+    homing[i] = 0;
+    needs_homing[i] = 1;
+  }
 
   // Enable all the motors
   stageMotor.setMaxSpeed(250 * stageMicrosteps); // Max value is 4000 (microcontroller limitation)
@@ -227,6 +232,12 @@ void loop() {
           Serial.print(nodMotor.isRunning());
           Serial.print(" ");
           Serial.println(nodMotor.currentPosition());
+          Serial.print("D ");
+          Serial.print(needs_homing[0]);
+          Serial.print(" ");
+          Serial.print(needs_homing[1]);
+          Serial.print(" ");
+          Serial.println(needs_homing[2]);
           break;
         case 'R': // Send maxSpeed and acceleration for each motor
           Serial.print("R");

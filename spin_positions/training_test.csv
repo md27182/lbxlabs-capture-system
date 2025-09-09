@@ -1,11 +1,10 @@
 rows
 # Enter row positions below in the format "φ, h"
-0, 10
-10, 10
-20, 10
-50, 10
-80, 10
+-14.261, 110.001
+0, 110.001
 
 cols
 # Enter column positions below (optional) in the format "θ"
 # If you don't enter any column positions below, the number of columns is set in the UI and even spacing between columns is assumed
+0
+5

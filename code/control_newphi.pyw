@@ -1372,7 +1372,7 @@ class ControlUI(QMainWindow):
 
     def degrees_to_positions(self, degree_values: list[float]):
         g_k = math.radians(degree_values[2]) + math.pi - np.acos(self.L2_LENGTH / self.L1_LENGTH)
-        p_k = math.radians(degree_values[1])
+        p_k = math.radians(degree_values[1]) - (math.pi / 2 - np.arccos(self.L2_LENGTH / self.L1_LENGTH))
 
         # calculate theta
         theta = degree_values[0] % 360
@@ -1383,7 +1383,8 @@ class ControlUI(QMainWindow):
         #h_gem = (L1 * np.cos(t2) + L2) / np.sin(t1 + t2)
         
         # calculate phi prime (shifted phi so it is centered around (0, h))
-        phi_prime = degree_values[1]
+        # phi_prime = degree_values[1]
+        phi_prime = math.degrees(p_k + g_k + math.pi / 2)
 
         return [theta, phi_prime, h_with_offset]
 
@@ -1399,12 +1400,15 @@ class ControlUI(QMainWindow):
         stage_motor_degrees = p[0] + (current_revs * 360)
 
         # calculate track motor degrees
-        track_motor_degrees = p[1]
+        # track_motor_degrees = p[1]
+        p_p = math.radians(p[1])
+        p_k =
+        track_motor_degrees = math.radians(p[1])
 
         # calculate nod motor degrees
         # nod_motor_degrees = p[2]
         h = p[2] - self.H_OFFSET
-        p_k = math.radians(track_motor_degrees)
+        p_k = math.radians(track_motor_degrees) - math.pi / 2 + np.arccos(self.L2_LENGTH / self.L1_LENGTH)
 
         term1 = np.atan2(-(h - self.L1_LENGTH * np.sin(p_k)), self.L1_LENGTH * np.cos(p_k))
         term2 = np.arccos(-self.L2_LENGTH / np.sqrt((self.L1_LENGTH*np.cos(p_k))**2 + (h - self.L1_LENGTH*np.sin(p_k))**2))

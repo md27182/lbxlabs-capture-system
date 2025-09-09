@@ -1,0 +1,8 @@
+# Enter row positions below in the format "φ, h"
+rows
+-16, 10
+-15.5, 152
+# Enter column positions below (optional) in the format "θ"
+cols
+0
+5
