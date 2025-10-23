@@ -858,6 +858,10 @@ class ControlUI(QMainWindow):
             self.run_capture_view()
 
     def run_live_view(self):
+        if self.camera is None:
+            self.output_to_terminal("Camera not connected, could not start Live View")
+            self.center_tabs.setCurrentIndex(0)
+            return        
         try:
             self.camera.SetLiveViewEnable(True)
             thread = QThread()
