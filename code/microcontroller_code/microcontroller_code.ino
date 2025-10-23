@@ -208,7 +208,7 @@ void loop() {
           break;
         case 'H': // Home axis
           homing[axis] = 1;
-          motor->move(-1000000);
+          motor->move(-10000000);
           break;
         case 'F': // Force move, ignore limit switches
           motor->move(value);

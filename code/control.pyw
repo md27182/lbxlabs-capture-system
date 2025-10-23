@@ -93,16 +93,19 @@ class LiveViewWorker(QObject):
     def start(self):
         self.running = True
         while self.running:
-            frame = self.camera.WaitForLiveView(1000)
-            data = frame.Data.ToArray()
-            image = QImage(bytes(data), frame.Width, frame.Height, QImage.Format_RGB888).copy()
-            self.live_view_frame_ready.emit(image)
+            try:
+                frame = self.camera.WaitForLiveView(1000)
+                data = frame.Data.ToArray()
+                image = QImage(bytes(data), frame.Width, frame.Height, QImage.Format_RGB888).copy()
+                self.live_view_frame_ready.emit(image)
+            except:
+                pass
     
     @pyqtSlot()
     def stop(self):
         self.running = False
 
-class LiveViewViewer(QLabel):
+class LiveViewViewer(AspectRatioLabel):
     def __init__(self, placeholder_text):
         super().__init__(placeholder_text)
     
@@ -139,6 +142,7 @@ class ControlUI(QMainWindow):
 
     user_txt_input = pyqtSignal(str)
     all_motors_stopped = pyqtSignal()
+    all_motors_stopped_2 = pyqtSignal()
 
     YELLOW_PROGRESS_COLOR = "#cd9c5c"
 
@@ -266,8 +270,10 @@ class ControlUI(QMainWindow):
         self.spin_cols = []
         self.capture_directory = self.default_capture_directory
         self.camera = None
+        self.live_view_flag = False
         self.live_view_worker = None
         self.live_view_thread = None
+        self.num_captures_per_position = 1
 
         self.setWindowTitle("lbxcontrol")
         self.setGeometry(400, 100, 1800, 900)
@@ -338,12 +344,12 @@ class ControlUI(QMainWindow):
         """)
         left_tabs.addTab(self.machine_controls, "Manual Controls")
 
-        center_tabs = QTabWidget()
-        center_tabs.setStyleSheet(left_tabs.styleSheet())
-        center_tabs.setTabPosition(QTabWidget.North)
-        center_tabs.addTab(self.last_image, "Latest Captured Image")
-        center_tabs.addTab(self.live_view, "Live View")
-        center_tabs.currentChanged.connect(self.on_tab_changed)
+        self.center_tabs = QTabWidget()
+        self.center_tabs.setStyleSheet(left_tabs.styleSheet())
+        self.center_tabs.setTabPosition(QTabWidget.North)
+        self.center_tabs.addTab(self.last_image, "Latest Captured Image")
+        self.center_tabs.addTab(self.live_view, "Live View")
+        self.center_tabs.currentChanged.connect(self.on_tab_changed)
 
         right_tabs = QTabWidget()
         right_tabs.setStyleSheet(left_tabs.styleSheet())
@@ -354,7 +360,7 @@ class ControlUI(QMainWindow):
         top_row = QWidget()
         top_layout = QHBoxLayout()
         top_layout.addWidget(left_tabs)
-        top_layout.addWidget(center_tabs, 1)
+        top_layout.addWidget(self.center_tabs, 1)
         top_layout.addWidget(right_tabs)
         top_row.setLayout(top_layout)
 
@@ -756,16 +762,17 @@ class ControlUI(QMainWindow):
         num_captures_label.setStyleSheet(self.standard_label_font)
         num_captures_layout.addWidget(num_captures_label)
 
-        self.num_captures_line_edit = QLineEdit()
-        self.num_captures_line_edit.setText("1")
-        self.num_captures_line_edit.setStyleSheet("""
-            QLineEdit {
+        self.num_captures_spinbox = QSpinBox()
+        self.num_captures_spinbox.setValue(1)
+        self.num_captures_spinbox.setMinimum(1)
+        self.num_captures_spinbox.setStyleSheet("""
+            QSpinBox {
                 font-size: 9pt;
                 background-color: #3a3a3a;
             }
         """)
         num_captures_layout.addStretch()
-        num_captures_layout.addWidget(self.num_captures_line_edit)
+        num_captures_layout.addWidget(self.num_captures_spinbox)
 
         # Folder selection widget
         folder_selector_widget = QWidget()
@@ -838,26 +845,31 @@ class ControlUI(QMainWindow):
 
         # On startup, the capture view is displayed first.
         self.run_capture_view()
-
+#endregion
 
     def on_tab_changed(self, index):
+        self.live_view_flag = False
 
         # Live View
         if index == 1:
             self.run_live_view()
+            self.live_view_flag = True
         elif index == 0:
             self.run_capture_view()
 
     def run_live_view(self):
-        self.camera.SetLiveViewEnable(True)
-        thread = QThread()
-        worker = LiveViewWorker(self.camera)
-        worker.moveToThread(thread)
-        thread.started.connect(worker.start)
-        worker.live_view_frame_ready.connect(self.live_view.on_frame)
-        self.live_view_worker = worker
-        self.live_view_thread = thread
-        thread.start()
+        try:
+            self.camera.SetLiveViewEnable(True)
+            thread = QThread()
+            worker = LiveViewWorker(self.camera)
+            worker.moveToThread(thread)
+            thread.started.connect(worker.start)
+            worker.live_view_frame_ready.connect(self.live_view.on_frame)
+            self.live_view_worker = worker
+            self.live_view_thread = thread
+            thread.start()
+        except:
+            pass
 
 
     def run_capture_view(self):
@@ -869,6 +881,10 @@ class ControlUI(QMainWindow):
             self.live_view_thread.wait()
             self.live_view_worker = None
             self.live_view_thread = None
+        try:
+            self.camera.SetLiveViewEnable(False)
+        except:
+            pass
 
         folder = Path(self.capture_directory)
         image_exts = {".iiq"}
@@ -876,9 +892,6 @@ class ControlUI(QMainWindow):
         if files:
             newest = max(files, key=lambda f: f.stat().st_ctime)
             self.display_image(newest)
-
-
-#endregion
 
     def output_to_terminal(self, message):
         self.terminal_output.append("> " + message)
@@ -920,6 +933,26 @@ class ControlUI(QMainWindow):
         loop.exec_()
         self.all_motors_stopped.disconnect(on_all_motors_stopped)
 
+    def wait_for_all_motors_stopped_2(self):
+        # alternative version of this method that uses a timer
+        stopped_check_timer = QTimer()
+        stopped_check_timer.timeout.connect(self.check_if_all_motors_stopped)
+        stopped_check_timer.start(500)
+
+        loop = QEventLoop()
+
+        def on_all_motors_stopped():
+            loop.quit()
+
+        self.all_motors_stopped_2.connect(on_all_motors_stopped)
+        loop.exec_()
+        self.all_motors_stopped_2.disconnect(on_all_motors_stopped)
+        stopped_check_timer.stop()
+
+    def check_if_all_motors_stopped(self):
+        if all([self.motor_data[i]["is_running"] for i in range(3)]):
+            self.all_motors_stopped_2.emit()
+
     def disable_manual_controls(self):
         self.geo_grid.setEnabled(False)
         self.keyboard_controls_toggle.setChecked(False)
@@ -936,6 +969,12 @@ class ControlUI(QMainWindow):
         self.capture_button.setEnabled(True)
 
     def start_sequence(self):
+        if self.live_view_flag:
+            self.output_to_terminal("Cannot start sequence when Live View is running. Please switch to the Latest Captured Image tab and try again.")
+            return
+        
+            # self.center_tabs.setCurrentIndex(0)
+
         if self.camera is not None:
             self.calibrate_button.setText("IN PROGRESS")
             self.calibrate_button.setStyleSheet(self.standard_button_style_long_in_progress)
@@ -1180,7 +1219,10 @@ class ControlUI(QMainWindow):
             self.initialize_camera()
         else:
             if self.camera is not None:
-                self.camera.Dispose()
+                try:
+                    self.camera.Dispose()
+                except:
+                    pass
                 self.camera = None
                 self.output_to_terminal("Camera disconnected")
             else:
@@ -1512,6 +1554,7 @@ class ControlUI(QMainWindow):
 
     def capture_spin_set(self):
         self.output_to_terminal("Starting spin set capture sequence...")
+        self.num_captures_per_position = self.num_captures_spinbox.value()
         if self.rows_value_label.isVisible():
             row_values = self.spin_rows
         else:
@@ -1525,7 +1568,7 @@ class ControlUI(QMainWindow):
             num_cols = int(self.cols_line_edit.text())
             col_values = np.linspace(0, 360, num=num_cols, endpoint=False).tolist()
         
-        print("??? starting main capture loop")
+        print("Starting main capture loop")
         for r in row_values:
             for c in col_values:
                 if self.cancel_sequence_flag:
@@ -1562,11 +1605,18 @@ class ControlUI(QMainWindow):
         self.end_sequence()
 
     def capture_image(self, raw=True, format="IIQ", default_dest=False):
+        #check if live view is enabled, and if so disable it
+        if self.live_view_flag:
+            self.output_to_terminal("Capture function not available when Live View is running. Please switch to the Latest Captured Image tab and try again.")
+            return
+
+            # self.center_tabs.setCurrentIndex(0)
+
         if self.camera is not None:
             try:
                 self.camera.TriggerCapture()
-                for i in range(1):
-                    frame = self.camera.WaitForImage()
+                for i in range(self.num_captures_per_position):
+                    frame = self.camera.WaitForImage(10000)
                     filename = time.strftime("%Y%m%d_%H%M%S")
                     base_dir = self.default_capture_directory if default_dest else self.capture_directory
                     path = base_dir + "/" + filename + ".iiq"
