@@ -950,7 +950,7 @@ class ControlUI(QMainWindow):
         stopped_check_timer.stop()
 
     def check_if_all_motors_stopped(self):
-        if all([self.motor_data[i]["is_running"] for i in range(3)]):
+        if all([not self.motor_data[i]["is_running"] for i in range(3)]):
             self.all_motors_stopped_2.emit()
 
     def disable_manual_controls(self):
@@ -970,10 +970,10 @@ class ControlUI(QMainWindow):
 
     def start_sequence(self):
         if self.live_view_flag:
-            self.output_to_terminal("Cannot start sequence when Live View is running. Please switch to the Latest Captured Image tab and try again.")
-            return
+            # self.output_to_terminal("Cannot start sequence when Live View is running. Please switch to the Latest Captured Image tab and try again.")
+            # return
         
-            # self.center_tabs.setCurrentIndex(0)
+            self.center_tabs.setCurrentIndex(0)
 
         if self.camera is not None:
             self.calibrate_button.setText("IN PROGRESS")
@@ -1548,7 +1548,7 @@ class ControlUI(QMainWindow):
         # self.move_to_position(1, phi)
         # self.move_to_position(2, h)
         if moved:
-            self.wait_for_all_motors_stopped()
+            self.wait_for_all_motors_stopped_2()
         if self.sequence_active_flag:
             self.capture_image()
 
@@ -1607,10 +1607,10 @@ class ControlUI(QMainWindow):
     def capture_image(self, raw=True, format="IIQ", default_dest=False):
         #check if live view is enabled, and if so disable it
         if self.live_view_flag:
-            self.output_to_terminal("Capture function not available when Live View is running. Please switch to the Latest Captured Image tab and try again.")
-            return
+            # self.output_to_terminal("Capture function not available when Live View is running. Please switch to the Latest Captured Image tab and try again.")
+            # return
 
-            # self.center_tabs.setCurrentIndex(0)
+            self.center_tabs.setCurrentIndex(0)
 
         if self.camera is not None:
             try:
